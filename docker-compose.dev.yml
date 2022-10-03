@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  app:
+    container_name: app
+    restart: always
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    env_file: .env
+    environment:
+      - PORT=${PORT}
+    ports:
+      - "4000:4000"
+#    external_links:
+#      - mongo
+#    depends_on:
+#      - mongo

@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  db-postgres:
+    image: postgres:14.5-alpine
+    container_name: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    env_file:
+      - .env
+
+#  cassandra:
+#    image: cassandra:4.0.5
+#    container_name: cassandra
+#    ports:
+#      - "9042:9042"
+#    environment:
+#      - "MAX_HEAP_SIZE=256M"
+#      - "HEAP_NEWSIZE=128M"
+#    networks:
+#      - db_cassandra_network
+#    volumes:
+#      - ./cassandra-data:/var/lib/cassandra
+
+#  nginx:
+#    image: nginx:apline
+#    container_name: reverse_server
+#    hostname: reverse_server
+#    volumes:
+#      - nginx.conf:/etc/nginx/nginx.conf
+#
+#  app:
+#    container_name: app
+#    hostname: app
+#    restart: always
+#    build: .
+#    env_file: .env.production
+#    environment:
+#      - PORT=${PORT}
+#    ports:
+#      - "4000:80"
+#
+#  zookeeper:
+#    image: confluentinc/cp-zookeeper:7.0.0
+#    hostname: zookeeper
+#    container_name: zookeeper
+#    environment:
+#      ZOOKEEPER_CLIENT_PORT: 2181
+#      ZOOKEEPER_TICK_TIME: 2000
+#
+#  broker:
+#    image: confluentinc/cp-kafka:7.0.0
+#    container_name: broker
+#    ports:
+#      - "9092:9092"
+#    depends_on:
+#      - zookeeper
+#    environment:
+#      KAFKA_BROKER_ID: 1
+#      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+#      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+networks:
+#  db_cassandra_network:
+  app-network:
+    driver: bridge
