@@ -34,7 +34,7 @@ module.exports = {
 
             const user_account_params = [hash, registerTypeId, res.rows[0].id, email];
             const sql_account = `insert into userAccounts
-                (hash, registerTypeId, userId, email)
+                (hash, "registerTypeId", "userId", email)
                     values($1, $2, $3, $4) returning *;`;
             const result = await client.query(sql_account, user_account_params);
             debug.db(user_account_params);
