@@ -8,11 +8,11 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
+      - ./volumes/postgres:/var/lib/postgresql/data
+#    networks:
+#      - app-network
     env_file:
-      - .env
+      - ./api-service/.env
 
 #  cassandra:
 #    image: cassandra:4.0.5
@@ -69,7 +69,7 @@ services:
 #      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 #      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
-networks:
-#  db_cassandra_network:
-  app-network:
-    driver: bridge
+#networks:
+##  db_cassandra_network:
+#  app-network:
+#    driver: bridge

@@ -1,6 +1,9 @@
-node_modules
-cassandra-data
-postgres_data
+api-service/node_modules
+chat-service/node_modules
 .env.production
 dist
 tests
+
+volumes
+data
+.idea
