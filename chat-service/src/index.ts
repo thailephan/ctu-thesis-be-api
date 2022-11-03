@@ -91,7 +91,7 @@ io.on("connection", (socket) => {
     require("./features/chat.socket")(io, socket);
     //
     // // Friend / Request
-    // require("./features/friend-requests.socket")(io, socket);
+    // require("./features/invitations.socket")(io, socket);
     //
     // // # Chat / base / typing
     // require("./features/typing.socket")(io, socket);

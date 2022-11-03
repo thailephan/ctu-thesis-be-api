@@ -8,7 +8,7 @@
 module.exports = {
     database: process.env.POSTGRES_DB,
     user: process.env.POSTGRES_USER,
-    host: process.env.POSTGRES_HOST,
+    host: "13.229.88.225",
     port: process.env.POSTGRES_PORT,
     password: process.env.POSTGRES_PASSWORD,
 }
