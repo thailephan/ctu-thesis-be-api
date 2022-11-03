@@ -20,22 +20,22 @@ io.on("connection", (socket) => {
     console.log('socket connect...', socket.id);
 
     socket.on("init", async (data) => {
-        const {user_id} = data;
+        const {userId} = data;
 
         try {
-            const res = await axios.get(`http://127.0.0.1:4001/users/get_by_id/${user_id}`);
+            const res = await axios.get(`http://127.0.0.1:4001/users/getById/${userId}`);
             if (!res.data.success) {
-                debug.api(res.data.errorMessage);
+                debug.socket(res.data.errorMessage);
             }
             const user = res.data.data;
 
-            const room_res = await axios.get(`http://127.0.0.1:4001/room-members/get_by_user_id/${user_id}`);
-            if (!room_res.data.success) {
-                debug.api(room_res.data.errorMessage);
+            const roomResponse = await axios.get(`http://127.0.0.1:4001/rooms/getByUserId/${userId}`);
+            if (!roomResponse.data.success) {
+                debug.socket(roomResponse.data.errorMessage);
             }
-            const rooms = room_res.data.data;
+            const rooms = roomResponse.data.data;
 
-            rooms.forEach(v => socket.join(v.room_id));
+            rooms.forEach(v => socket.join(v.id));
 
             users_sockets.set(user.id, socket.id);
 
@@ -44,6 +44,9 @@ io.on("connection", (socket) => {
             socket.data= {
                 user
             };
+            socket.emit("init/ack", {
+                rooms
+            });
         } catch (e) {
             console.log(e);
         }
@@ -72,6 +75,8 @@ io.on("connection", (socket) => {
     // When disconnect
     socket.on('disconnect', function (reason) {
         console.log('socket disconnect...', socket.id, reason)
+        // TODO: Call API to update user status when they offline
+        // TODO: Emit status update to other users when this user is offline
         // handleDisconnect()
     });
     socket.on('error', function (err) {
@@ -80,16 +85,16 @@ io.on("connection", (socket) => {
     });
 
     // Friend / Base
-    socket.on('friend/base/unfriend', function () {
-
-    });
+    // socket.on('friend/base/unfriend', function () {
+    //
+    // });
     require("./features/chat.socket")(io, socket);
-
-    // Friend / Request
-    require("./features/friend-requests.socket")(io, socket);
-
-    // # Chat / base / typing
-    require("./features/typing.socket")(io, socket);
+    //
+    // // Friend / Request
+    // require("./features/friend-requests.socket")(io, socket);
+    //
+    // // # Chat / base / typing
+    // require("./features/typing.socket")(io, socket);
 });
 
 httpServer.listen(config.server.PORT, () => {

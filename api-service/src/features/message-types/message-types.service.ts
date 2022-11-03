@@ -7,7 +7,7 @@ module.exports = {
     async count(condition: ICondition) {
         const { search } = condition;
         try {
-            let sql = `select count(*) from message_types`;
+            let sql = `select count(*) from messageTypes`;
             if (search) {
                 sql += ` where status >= 1 and name LIKE '%${search}%'`
             }
@@ -19,12 +19,8 @@ module.exports = {
         }
     },
     async getAll(queryParams: IQueryParams = {}) {
-        const {sort, search, offset, limit} = queryParams;
-        let sql = `select 
-            id, created_by, updated_by, name, status,
-            ceil(extract(epoch from created_at)) as created_at,
-            ceil(extract(epoch from updated_at)) as updated_at
-            from message_types where status >= 1`
+        const {sort, search, offset, limit, status = 1} = queryParams;
+        let sql = `select id, name, status from messageTypes where status >= ${status}`
         const params: any[] = [];
 
         if (search) {
@@ -48,23 +44,19 @@ module.exports = {
         return result.rows;
     },
     async getById(id: string) {
-        const sql = `select
-                 id, created_by, updated_by, name, status,
-                 ceil(extract(epoch from created_at)) as created_at,
-                 ceil(extract(epoch from updated_at)) as updated_at
-            from message_types where id = $1`;
+        const sql = `select id, name, status from messageTypes where id = $1`;
         const params = [id]
         const result = await db.query(sql, params);
         return result.rows[0];
     },
-    async create({name, created_by = null, updated_by = null, status = 1}: {name: string, created_by: number | null, updated_by: number | null, status: number}) {
-        const now = new Date();
-        const query = `insert into message_types(name, created_by, updated_by, updated_at, created_at, status) VALUES ($1, $2, $3, $4, $5, $6) returning *`;
-        const params = [name, created_by, updated_by, now, now, status];
-
-        const result = await db.query(query, params);
-        return result.rows[0];
-    },
+    // async create({name, created_by = null, updated_by = null, status = 1}: {name: string, created_by: number | null, updated_by: number | null, status: number}) {
+    //     const now = new Date();
+    //     const query = `insert into message_types(name, created_by, updated_by, updated_at, created_at, status) VALUES ($1, $2, $3, $4, $5, $6) returning *`;
+    //     const params = [name, created_by, updated_by, now, now, status];
+    //
+    //     const result = await db.query(query, params);
+    //     return result.rows[0];
+    // },
 
     // async update({id, name = null, course_id = null, college_id = null, status = 1, updated_by = null}: {id: string, name: string, course_id: string, college_id: string, updated_by: string, status: number}) {
     //     const sql = 'update classes set name = $1, course_id = $2, college_id = $3, updated_at = $4, updated_by = $5, status = $6 WHERE id = $7';

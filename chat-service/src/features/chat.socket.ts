@@ -2,7 +2,26 @@ import { Socket, Server } from "socket.io";
 import {DefaultEventsMap} from "socket.io/dist/typed-events";
 import axios from "axios";
 
+const debug = require("../common/debugger");
+
 module.exports = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) => {
+    socket.on("chat/messages/getNewMessages", async ({ roomId }) => {
+        //  Increase current message of user
+        const res = await axios.get(`http://127.0.0.1:4001/messages/getNewMesasges`, {
+            data: {
+                roomId
+            }
+        });
+
+        if (!res.data.success) {
+            debug.socket(res.data.errorMessage);
+        }
+
+        const messages = res.data.data;
+        debug.debugger("chat/messages/getNewMessages", { roomId, messages, errorMessage: res.data.errorMessage });
+        socket.emit("chat/messages/getNewMessages/ack", { roomId, messages, errorMessage: res.data.errorMessage })
+    });
+
     socket.on("chat/message/send", async (message: any) => {
         const now = (new Date()).getTime();
         message.room_id = message.room_id.toString();

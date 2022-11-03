@@ -28,9 +28,11 @@ export interface IQueryParams {
     columns?: string;
     offset?: number;
     limit?: number;
+    status?: number;
 }
 export interface ICondition {
     search?: string;
+    status?: number;
 }
 
 // User

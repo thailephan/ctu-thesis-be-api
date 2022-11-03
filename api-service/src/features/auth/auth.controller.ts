@@ -50,6 +50,7 @@ module.exports = (app: Express) => {
             },
         })
     })
+    // TODO: One email can register multiple time (error)
     app.post("/auth/register", async (req, res) => {
         const {password, email} = req.body;
         if (Helpers.isNullOrEmpty(email)) {

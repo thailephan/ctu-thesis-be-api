@@ -2,10 +2,13 @@ import { Express } from "express";
 const service = require("./messages.service");
 const debug = require("../../common/debugger");
 const Helpers = require("../../common/helpers");
-const { filterGetList } = require("../../middleware");
+// const { filterGetList } = require("../../middleware");
+
+const BEGINNING_MESSAGE = 1;
+const LATEST_MESSAGE = undefined;
 
 module.exports = (app: Express) => {
-    // API for unread mesasges of user in _rooms
+    // API for unread mesasges of user in chat-rooms
     // Show room sorted by newest mesasge - pos: 7
 
     // TODO: handle search mesasge by text
@@ -18,57 +21,82 @@ module.exports = (app: Express) => {
         });
     });
 
-    app.get("/messages/get_list", filterGetList, async (req, res) => {
-        // room_id, user_id, offset
-        const room_id = req.body.room_id;
-        const limit = parseInt(req.query.limit as string);
-        const start_read_message = parseInt(req.query.start_read_message as string);
-        debug.debugger(`/messages/get_list query`, JSON.stringify({ room_id, limit, start_read_message }));
+    app.get("/messages/getNewMesasges", async (req, res) => {
+            const from = parseInt(req.query.from as string) || BEGINNING_MESSAGE;
+            const to = parseInt(req.query.to as string) || LATEST_MESSAGE;
+            const roomId = req.body.roomId;
 
-        // TODO: Check user_id, room_id is undefined or not
+            debug.debugger("/messages/getNewMessages", JSON.stringify({ roomId, from, to }));
 
-        try {
-            // Handle get mesasges
-            const messages = await service.getAll({room_id, limit, start_read_message});
-            const message_total = await service.count(room_id);
-            const has_more_message = message_total > start_read_message + limit;
+            try {
+                const messages = await service.getNewMessages({roomId, from, to});
 
-            debug.debugger(`/messages/get_list success`, {messages});
-
-            res.status(200).json({
-                success: true,
-                statusCode: 200,
-                data: {
-                    items: messages,
-                    room: {
-                        room_id,
-                        message_total,
-                        has_more_message,
-                    }
-                },
-            });
-        } catch (e) {
-            debug.api(e);
-            return res.status(400).json({
-                success: false,
-                statusCode: 400,
-                error: e.message
-            });
-        }
-    });
+                return res.status(200).send({
+                    data: messages,
+                    status: 200,
+                    success: true,
+                });
+            } catch (e) {
+                debug.api(e);
+                return res.status(400).json({
+                    success: false,
+                    statusCode: 400,
+                    error: e.message
+                });
+            }
+    })
+    // })
+    // app.get("/messages/getAll", async (req, res) => {
+    //     // roomId, userId, from
+    //     const from = parseInt(req.query.from as string) || "beginning";
+    //     const roomId = req.body.roomId;
+    //     const userId = req.body.userId;
+    //
+    //     debug.debugger(`/messages/getAll query`, JSON.stringify({ roomId, userId, from }));
+    //
+    //     // TODO: Check userId, roomId is undefined or not
+    //     try {
+    //         // Handle get mesasges
+    //         const messages = await service.getAll({ roomId, userId, from });
+    //         const hasMoreMessage = await service.hasMoreMessage({roomId, userId});
+    //         const hasLeftMessage = await service.hasLeftMessage({roomId, userId});
+    //
+    //         debug.debugger(`/messages/get_list success`, {messages});
+    //
+    //         res.status(200).json({
+    //             success: true,
+    //             statusCode: 200,
+    //             data: {
+    //                 items: messages,
+    //                 room: {
+    //                     roomId,
+    //                     message_total,
+    //                     has_more_message,
+    //                 }
+    //             },
+    //         });
+    //     } catch (e) {
+    //         debug.api(e);
+    //         return res.status(400).json({
+    //             success: false,
+    //             statusCode: 400,
+    //             error: e.message
+    //         });
+    //     }
+    // });
     app.post("/messages/create", async (req, res) => {
-        const { sender_id, room_id, message_type_id } = req.body;
+        const { sender_id, roomId, message_type_id } = req.body;
 
         try {
-            // TODO: verify sender_id, room_id, content existed
+            // TODO: verify sender_id, roomId, content existed
             if (!Helpers.isNumberId(sender_id)) {
                 throw Error(`Invalid sender_id`);
             }
             if (!Helpers.isNumberId(message_type_id)) {
                 throw Error(`Invalid message_type_id`);
             }
-            if (Helpers.isNullOrEmpty(room_id)) {
-                throw Error(`Invalid room_id`);
+            if (Helpers.isNullOrEmpty(roomId)) {
+                throw Error(`Invalid roomId`);
             }
 
             const result = await service.create(req.body);
