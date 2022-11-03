@@ -72,6 +72,7 @@ export interface IAccount {
     status?: number,
     role?: number
     registerTypeId?: number,
+    fullName?: string;
 }
 
 export interface IMesasgeCondition {

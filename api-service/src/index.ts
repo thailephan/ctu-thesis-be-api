@@ -19,15 +19,15 @@ app.use(express.json());
 // app.use(compression());
 //
 require("./features/auth")(app);
-require("./features/users")(app, firebase);
+require("./features/invitations")(app);
+// require("./features/users")(app, firebase);
 // require("./features/classes")(app);
 // require("./features/departments")(app);
 // require("./features/courses")(app);
 // require("./features/message-types")(app);
-// require("./features/friend-requests")(app);
 // require("./features/friends")(app);
-require("./features/messages")(app);
-require("./features/chat-rooms")(app);
+// require("./features/messages")(app);
+// require("./features/chat-rooms")(app);
 
 // mail.resetPassword("thailephanminh@gmail.com");
 
