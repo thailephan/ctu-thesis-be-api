@@ -9,7 +9,7 @@ module.exports = {
     ...commonService,
     async getAllByUserId(id: string) {
         const sql = `
-            select friends."createdAt" as "friendSince",
+            select ceil(extract(epoch from friends."createdAt")) as "friendSince",
                    case when not "userId1" = $1 then user2."fullName"
                         when not "userId2" = $1 then user1."fullName"
                    end as "fullName",

@@ -15,7 +15,7 @@ module.exports = {
         //         join users toUser on invitations."receiverId" = toUser.id
         //     where "senderId" = $1 OR "receiverId" = $1;`;
         const sql = `
-            select invitations."createdAt" as "createdAt",
+            select ceil(extract(epoch from invitations."createdAt")) as "createdAt",
                    "senderId",
                    "receiverId",
                 case
@@ -82,5 +82,61 @@ module.exports = {
         const params = [senderId, receiverId];
         const result = await db.query(sql, params);
         return result.rows[0];
-    }
+    },
+    deleteInvitation: async (senderId: number, receiverId: number) => {
+        const params = [senderId, receiverId];
+        const sqlPrecheckInvitation = `select * from invitations where ("senderId" = $1 and "receiverId" = $2) or ("senderId" = $2 and "receiverId" = $1) limit 1;`;
+        const {rows: existed} = await db.query(sqlPrecheckInvitation, params);
+        debug.db("invitation:deleteInvitation", {
+            query: sqlPrecheckInvitation,
+            params,
+            rows: existed,
+        });
+        if (Helpers.isNullOrEmpty(existed[0])) {
+            throw Error("Lời mời kết bạn không còn tồn tại");
+        } else {
+            const sql = `delete from invitations
+                where ("senderId" = $1 and "receiverId" = $2) or ("senderId" = $2 and "receiverId" = $1);`
+            const result = await db.query(sql, params);
+
+            debug.db("invitation:deleteInvitation", {
+                rows: result.rows,
+            });
+            return result.rows[0];
+        }
+    },
+    addFriend : async (senderId: number, receiverId: number) => {
+        const params = [senderId, receiverId];
+        const sqlPrecheckInvitation = `
+            select * from invitations 
+                     where ("senderId" = $1 and "receiverId" = $2) or ("senderId" = $2 and "receiverId" = $1) limit 1;`;
+        const {rows: existed} = await db.query(sqlPrecheckInvitation, params);
+
+        if (Helpers.isNullOrEmpty(existed[0])) {
+            throw Error("Lời mời kết bạn không còn tồn tại");
+        } else {
+            const client = await db.getClient();
+
+            try {
+                await client.query('BEGIN');
+                const deleteInvitationSql = `delete from invitations where ("senderId" = $1 and "receiverId" = $2) or ("senderId" = $2 and "receiverId" = $1);`
+                const addFriendSql = `insert into friends("userId1", "userId2") values ($1, $2);`;
+
+                await Promise.all([client.query(deleteInvitationSql, params), client.query(addFriendSql, params)])
+                debug.db("invitation:addFriend", {
+                    invitation: deleteInvitationSql,
+                    friend: addFriendSql
+                });
+
+                await client.query('COMMIT');
+            } catch (e) {
+                await client.query('ROLLBACK')
+                throw e
+            } finally {
+                client.release()
+            }
+        }
+
+        return null;
+    },
 };

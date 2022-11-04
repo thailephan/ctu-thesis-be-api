@@ -68,12 +68,80 @@ module.exports = (app: Express) => {
             });
         }
     });
-    app.post("/invitations/cancel", middleware.verifyToken, (req, res) => {
+    app.post("/invitations/delete", middleware.verifyToken, async (req, res) => {
+        const { id: userId2 = "" } = req.body;
+        // @ts-ignore
+        const userId1 = req.user.id;
+
+        if (Helpers.isNullOrEmpty(userId2)) {
+            return res.status(200).json({
+                message: "Id không hợp lệ",
+                data: null,
+                success: false,
+            });
+        }
+        if (userId2 === userId1) {
+            return res.status(200).json({
+                message: "request user's id không được trùng với body.id",
+                data: null,
+                success: false,
+            });
+        }
+        try {
+            await service.deleteInvitation(userId1, parseInt(userId2));
+
+            return res.status(200).json({
+                data: null,
+                success: true,
+                message: null,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                data: null,
+                success: false,
+                message: e.message,
+            });
+        }
     });
 
     // TODO: Receiver API
-    app.post("/invitations/accept", middleware.verifyToken, (req, res) => {
-    });
-    app.post("/invitations/reject", middleware.verifyToken, (req, res) => {
+    app.post("/invitations/accept", middleware.verifyToken, async (req, res) => {
+        // TODO: start transaction
+        // TODO: remove invitations
+        // TODO: add friends relationship to `friends` table *returning `*`*
+        // TODO: return friend data row after finish
+        const { id: userId2 = "" } = req.body;
+        // @ts-ignore
+        const userId1 = req.user.id;
+
+        if (Helpers.isNullOrEmpty(userId2)) {
+            return res.status(200).json({
+                message: "Id không hợp lệ",
+                data: null,
+                success: false,
+            });
+        }
+        if (userId2 === userId1) {
+            return res.status(200).json({
+                message: "request user's id không được trùng với body.id",
+                data: null,
+                success: false,
+            });
+        }
+        try {
+            await service.addFriend(userId1, parseInt(userId2));
+
+            return res.status(200).json({
+                data: null,
+                success: true,
+                message: null,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                data: null,
+                success: false,
+                message: e.message,
+            });
+        }
     });
 };

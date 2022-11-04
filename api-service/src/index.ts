@@ -20,7 +20,7 @@ app.use(express.json());
 //
 require("./features/auth")(app);
 require("./features/invitations")(app);
-// require("./features/users")(app, firebase);
+require("./features/users")(app, firebase);
 // require("./features/classes")(app);
 // require("./features/departments")(app);
 // require("./features/courses")(app);
