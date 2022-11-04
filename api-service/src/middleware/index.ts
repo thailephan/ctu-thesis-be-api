@@ -47,10 +47,11 @@ module.exports = {
         const token = authHeader && authHeader.split(' ')[1]
 
         if (token == null)
-            return res.status(401).json({
+            return res.status(200).json({
                 success: false,
                 statusCode: 401,
-                errorMessage: "Không tìm thấy bearer token"
+                data: null,
+                message: "Không tìm thấy bearer token"
             });
 
         jwt.verify(token, config.token.access_token_secret, (err: any, decoded: any) => {
@@ -59,8 +60,8 @@ module.exports = {
 
                 return res.status(401).json({
                     success: false,
-                    statusCode: 401,
-                    errorMessage: "Token không hợp lệ"
+                    data: null,
+                    message: "Token không hợp lệ"
                 });
             } else {
                 req.user = decoded;

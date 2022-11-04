@@ -14,22 +14,40 @@ module.exports = (app: Express) => {
     app.get("/invitations/getAll", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const id = req.user.id;
+        debug.api("invitations/getAll", id);
 
-        const invitations = await service.getAllByUserId(id);
-        return res.status(200).json({
-            errorMessage: null,
-            data: invitations,
-            success: true,
-        });
+        try {
+            const invitations = await service.getAllByUserId(id);
+            return res.status(200).json({
+                message: null,
+                data: invitations,
+                success: true,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                data: null,
+                success: false,
+            });
+        }
     });
-    app.post("/invitations/sendToId", middleware.verifyToken, async (req, res) => {
+
+    // TODO: SENDER API
+    app.post("/invitations/inviteUserId", middleware.verifyToken, async (req, res) => {
         const { id: receiverId = "" } = req.body;
         // @ts-ignore
         const senderId = req.user.id;
 
         if (Helpers.isNullOrEmpty(receiverId)) {
             return res.status(200).json({
-                errorMessage: "Không tìm thấy id của người nhận",
+                message: "Không tìm thấy id của người nhận",
+                data: null,
+                success: false,
+            });
+        }
+        if (!Helpers.isNullOrEmpty(await service.isBothAreFriends(senderId, parseInt(receiverId)))) {
+            return res.status(200).json({
+                message: "Đã là bạn bè, không thể gửi lời mời kết bạn",
                 data: null,
                 success: false,
             });
@@ -40,14 +58,22 @@ module.exports = (app: Express) => {
             return res.status(200).json({
                 data: newInvitation,
                 success: true,
-                errorMessage: null,
+                message: null,
             });
         } catch (e) {
             return res.status(200).json({
                 data: null,
                 success: false,
-                errorMessage: e.message,
+                message: e.message,
             });
         }
-    })
+    });
+    app.post("/invitations/cancel", middleware.verifyToken, (req, res) => {
+    });
+
+    // TODO: Receiver API
+    app.post("/invitations/accept", middleware.verifyToken, (req, res) => {
+    });
+    app.post("/invitations/reject", middleware.verifyToken, (req, res) => {
+    });
 };

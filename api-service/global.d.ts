@@ -1,5 +1,5 @@
-declare module 'express' {
-    export interface Request {
-        user: any;
-    }
-}
+// declare module 'express' {
+//     export interface Request {
+//         user: any;
+//     }
+// }

@@ -25,7 +25,7 @@ require("./features/invitations")(app);
 // require("./features/departments")(app);
 // require("./features/courses")(app);
 // require("./features/message-types")(app);
-// require("./features/friends")(app);
+require("./features/friends")(app);
 // require("./features/messages")(app);
 // require("./features/chat-rooms")(app);
 
