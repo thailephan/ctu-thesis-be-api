@@ -2,8 +2,9 @@ import express, { Express } from "express";
 import cors from "cors";
 // import compression from "compression";
 import path from "path";
+
 require("dotenv").config({
- path: process.env.NODE_ENV === "development" ? path.resolve(process.cwd(), '.env.local.development') : path.resolve(process.cwd(), '.env'),
+ path: process.env.NODE_ENV === "development_local" ? path.resolve(process.cwd(), '.env.local.development') : path.resolve(process.cwd(), '.env'),
 });
 
 const debug = require("./common/debugger");
