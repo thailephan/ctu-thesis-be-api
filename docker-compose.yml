@@ -27,7 +27,7 @@ services:
 #     https://medium.com/featurepreneur/enabling-sasi-index-86604c37d31b
 #     file cassandra.yaml in docker copy out here
 #     https://stackoverflow.com/questions/48734670/sasi-index-in-cassandra-and-how-it-differs-from-normal-indexing
-      - ./volumes/cassandra.yaml:/etc/cassandra/cassandra.yaml
+      - ./cassandra.yaml:/etc/cassandra/cassandra.yaml
 #    networks:
 #      - db_cassandra_network
 
@@ -43,7 +43,7 @@ services:
 #    hostname: app
 #    restart: always
 #    build: .
-#    env_file: .env.production
+#    env_file: .env
 #    environment:
 #      - PORT=${PORT}
 #    ports:

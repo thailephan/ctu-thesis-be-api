@@ -222,6 +222,7 @@ const getAllByUserId = async (args?: {id: number, channelTypeId?: number}) => {
     const result = await db.query(sql, params);
 
     return await (Promise.all(result.rows.map(async (channel: any) => {
+        channel.lastMessage = (await client.execute(`select * from messagesByChannels where "channelId" = ? and status = 1 order by id desc limit 1;`, [ channel.id ], {prepare: true})).rows[0] || null;
         if (channel.typeId === 1) {
             //    TODO: get channel members (2 members)
             channel.createdBy = null;

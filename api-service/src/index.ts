@@ -1,9 +1,10 @@
-require("dotenv").config();
-
 import express, { Express } from "express";
-import * as http from "http";
 import cors from "cors";
 // import compression from "compression";
+import path from "path";
+require("dotenv").config({
+ path: process.env.NODE_ENV === "development" ? path.resolve(process.cwd(), '.env.local.development') : path.resolve(process.cwd(), '.env'),
+});
 
 const debug = require("./common/debugger");
 const { server: serverConfig } = require("./config");
