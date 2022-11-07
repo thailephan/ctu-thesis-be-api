@@ -80,10 +80,5 @@ export interface IMesasgeCondition {
 }
 
 export interface IMessageQueryParams {
-    start_read_message?: number;
-    limit?: number;
-    user_id: number;
-    room_id: number;
-
-    search?: string;
+    channelId: string;
 }

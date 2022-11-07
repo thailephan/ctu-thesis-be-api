@@ -1,8 +1,10 @@
-export const AccountStatus = new Map([[1, 'active'], [2, 'blocked'], [0, 'not verified'], [-1, 'delete']]);
-export const MessageType = new Map<number, string>([[1, "information"], [2, "friend"], [3, "group"]]);
-export const AccountRegisterType = new Map([[1, 'email/password'], [2, 'google']]);
+export const AccountStatuses = new Map([[1, 'active'], [2, 'blocked'], [0, 'not verified'], [-1, 'delete']]);
+// In db
+// export const ChatRoomType = new Map<number, string>([[1, "friend"], [2, "group"]]);
+// In db
+// export const MessageTypes = new Map<number, string>([[1, "text"], [2, "image"], [3, "voice"], [4, "file"], [5, "location"], [6, "poll"]]);
+export const AccountRegisterTypes = new Map([[1, 'email/password'], [2, 'google']]);
 
-export const RoomType = new Map([[1, 'stranger'], [2, 'friend'], [3, 'group']]);
 export const MessageStatus = new Map([[1, 'sent'], [2, 'received'], [3, 'seen'], [-1, 'delete']]);
 
 // Base SQL query

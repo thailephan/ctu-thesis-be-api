@@ -22,10 +22,14 @@ services:
     environment:
       - "MAX_HEAP_SIZE=256M"
       - "HEAP_NEWSIZE=128M"
-#    networks:
-#      - db_cassandra_network
     volumes:
       - ./volumes/cassandra:/var/lib/cassandra
+#     https://medium.com/featurepreneur/enabling-sasi-index-86604c37d31b
+#     file cassandra.yaml in docker copy out here
+#     https://stackoverflow.com/questions/48734670/sasi-index-in-cassandra-and-how-it-differs-from-normal-indexing
+      - ./volumes/cassandra.yaml:/etc/cassandra/cassandra.yaml
+#    networks:
+#      - db_cassandra_network
 
 #  nginx:
 #    image: nginx:apline
