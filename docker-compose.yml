@@ -31,12 +31,12 @@ services:
 #    networks:
 #      - db_cassandra_network
 
-#  nginx:
-#    image: nginx:apline
-#    container_name: reverse_server
-#    hostname: reverse_server
-#    volumes:
-#      - nginx.conf:/etc/nginx/nginx.conf
+  nginx:
+    image: nginx:apline
+    container_name: reverse_server
+    hostname: reverse_server
+    volumes:
+      - nginx.conf:/etc/nginx/nginx.conf
 #
 #  app:
 #    container_name: app
