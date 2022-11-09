@@ -1,12 +1,8 @@
 export {};
-require("dotenv").config();
 
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { ITokenPayload } from "./interface";
 
 const debug = require("../common/debugger");
-const config = require("../config");
 
 const Helpers = {
     pageToOffsetLimit(input: {page: number | null, size: number | null}) {
@@ -39,10 +35,6 @@ const Helpers = {
             debug.debugger("helpers: hash: failed", {err});
             return null;
         });
-    },
-    // JWT
-    generateToken(payload: ITokenPayload) {
-        return jwt.sign(payload, config.token.access_token_secret, { subject: payload.username });
     },
     /**
      * Check value is string or non.
