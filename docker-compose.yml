@@ -31,12 +31,28 @@ services:
 #    networks:
 #      - db_cassandra_network
 
-#  nginx:
-#    image: nginx:apline
-#    container_name: reverse_server
-#    hostname: reverse_server
-#    volumes:
-#      - nginx.conf:/etc/nginx/nginx.conf
+  nginx:
+    image: nginx:alpine
+    container_name: reverse_server
+    hostname: reverse_server
+    ports:
+      - "80:80"
+      - "433:433"
+    volumes:
+      - nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - asset-service
+
+  asset-service:
+    build:
+      context: asset-service
+      dockerfile: Dockerfile
+    container_name: asset-service
+    hostname: asset-service
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./asset-service/public:/app/public"
 #
 #  app:
 #    container_name: app
