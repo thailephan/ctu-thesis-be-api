@@ -89,7 +89,7 @@ func MessageAttachmentUpload(c *gin.Context) {
 			FileName string `json:"fileName"`
 			Ext      string `json:"fileExt"`
 			Size     int64  `json:"fileSize"`
-		}{FileName: baseFileName, Ext: filepath.Ext(lowerCase)[1:], Size: file.Size, Url: "/" + fileAccessUrl}
+		}{FileName: baseFileName, Ext: filepath.Ext(lowerCase)[1:], Size: file.Size, Url: "/assets/" + fileAccessUrl}
 
 		data, _ := json.Marshal(&fileMetadata)
 		c.JSON(http.StatusOK, gin.H{

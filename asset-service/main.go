@@ -11,14 +11,14 @@ import (
 
 func main() {
 	router := gin.Default()
-	router.Static("/", "./public")
+	router.Static("/assets", "./public")
 
 	// Set a lower memory limit for multipart forms (default is 32 MiB)
 	//router.MaxMultipartMemory = 8 << 20 // 8 MiB
 
-	router.POST("/greeting", func(c *gin.Context) {
+	router.GET("/hello", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"Oke": "abc",
+			"Hi": "name?",
 		})
 	})
 	routes.SetupRoutes(router)
