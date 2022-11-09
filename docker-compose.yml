@@ -51,23 +51,37 @@ services:
       dockerfile: Dockerfile
     container_name: asset-service
     hostname: asset-service
+#    Uncomment to expose to connect direct by port 8080 of server
 #    ports:
 #      - "8080:8080"
     volumes:
       - "./asset-service/public:/app/public"
     networks:
       - asset-network
+
+#  api-service:
+#    build:
+#      context: api-service
+#      dockerfile: Dockerfile
+#    container_name: api-service
+#    hostname: api-service
+#    #    Uncomment to expose to connect direct by port 8080 of server
+#    #    ports:
+#    #      - "4001:4001"
+#    networks:
+#      - api-network
 #
-#  app:
-#    container_name: app
-#    hostname: app
-#    restart: always
-#    build: .
-#    env_file: .env
-#    environment:
-#      - PORT=${PORT}
-#    ports:
-#      - "4000:80"
+#  chat-service:
+#    build:
+#      context: chat-service
+#      dockerfile: Dockerfile
+#    container_name: chat-service
+#    hostname: chat-service
+#    #    Uncomment to expose to connect direct by port 8080 of server
+#    #    ports:
+#    #      - "4001:4001"
+#    networks:
+#      - chat-network
 #
 #  zookeeper:
 #    image: confluentinc/cp-zookeeper:7.0.0
@@ -99,5 +113,9 @@ services:
 #    driver: bridge
 
 networks:
+  api-network:
+    driver: bridge
+  chat-network:
+    driver: bridge
   asset-network:
     driver: bridge
