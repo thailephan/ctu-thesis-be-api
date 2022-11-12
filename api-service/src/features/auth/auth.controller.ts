@@ -11,6 +11,13 @@ const constants = require("../../common/constants");
 
 const GOOGLE_REGISTER_TYPE_ID = 2;
 module.exports = (app: Express) => {
+    app.post("/auth/verifyToken", middleware.verifyToken, async (req, res) => {
+        return res.status(200).json({
+            status: 200,
+            message: null,
+            data: null,
+        })
+    });
     app.post("/auth/check_mail_registered", async (req, res) => {
         const { email } = req.body;
         if (Helpers.isNullOrEmpty(email)) {
@@ -79,6 +86,7 @@ module.exports = (app: Express) => {
                 success: true,
                 data: null,
                 message: null,
+                statusCode: 200,
             });
         } catch (e) {
             let message = e.message;
@@ -86,6 +94,7 @@ module.exports = (app: Express) => {
             return res.status(200).json({
                 success: false,
                 data: null,
+                statusCode: 400,
                 message: message,
             });
         }
@@ -98,6 +107,7 @@ module.exports = (app: Express) => {
             return res.status(200).json({
                 success: false,
                 data: null,
+                statusCode: 400,
                 message: "Email hoặc mật khẩu không được rỗng",
             });
         }
@@ -107,6 +117,7 @@ module.exports = (app: Express) => {
             return res.status(200).json({
                 success: false,
                 data: null,
+                statusCode: 400,
                 message: "Tài khoản không tồn tại",
             });
         }
@@ -118,6 +129,7 @@ module.exports = (app: Express) => {
             return res.status(200).json({
                 success: false,
                 data: null,
+                statusCode: 400,
                 message: "Mật khẩu không chính xác",
             });
         }
@@ -134,6 +146,7 @@ module.exports = (app: Express) => {
         return res.status(200).json({
             success: true,
             message: null,
+            statusCode: 400,
             data: {
                 accessToken: Helpers.generateToken(payload),
             },
@@ -149,6 +162,7 @@ module.exports = (app: Express) => {
             return res.status(200).json({
                 success: false,
                 data: null,
+                statusCode: 400,
                 message: "Tài khoản không tồn tại",
             });
         }
@@ -176,12 +190,15 @@ module.exports = (app: Express) => {
         if (req.user) {
             return res.status(200).json({
                 success: true,
+                data: null,
+                message: null,
                 statusCode: 200,
             });
         } else {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: true,
                 statusCode: 400,
+                data: null,
                 message: "Đăng xuất không thành công",
             });
         }
