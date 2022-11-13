@@ -102,5 +102,33 @@ module.exports = (app: Express) => {
                 data: null,
             });
         }
-    })
+    });
+    app.post("/channels/create", middleware.verifyToken, async (req, res) => {
+        const { users, channelTypeId, channelName, channelAvatarUrl } = req.body;
+
+        try {
+        } catch (e) {
+        }
+    });
+    app.post("/channels/addMemberToChannel", middleware.verifyToken, async (req, res) => {
+        const { users, channelTypeId, channelName, channelAvatarUrl } = req.body;
+
+        try {
+        } catch (e) {
+        }
+    });
+    app.post("/channels/removeMemberFromChannel", middleware.verifyToken, async (req, res) => {
+        const { users, channelTypeId, channelName, channelAvatarUrl } = req.body;
+
+        try {
+        } catch (e) {
+        }
+    });
+    app.post("/channels/leaveChannel", middleware.verifyToken, async (req, res) => {
+        const { users, channelTypeId, channelName, channelAvatarUrl } = req.body;
+
+        try {
+        } catch (e) {
+        }
+    });
 };

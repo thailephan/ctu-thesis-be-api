@@ -128,6 +128,17 @@ module.exports = {
                     friend: addFriendSql
                 });
 
+                const createChannel = `insert into channels("channelTypeId", status) values ($1, $2) returning *`;
+                const createChannelParams = [1, 1];
+                const createChannelResult = await db.query(createChannel, createChannelParams);
+                const channel = createChannelResult.rows[0];
+                if (channel) {
+                    const addChannelMembers = `insert into channelmembers("channelId", "memberId") values ($1, $2);insert into channelmembers("channelId", "memberId") values ($1, $3);`;
+                    const addChannelMembersParams = [channel.id, senderId, receiverId];
+                    await db.query(createChannel, createChannelParams);
+                } else {
+                    throw Error("Không thể tạo channel");
+                }
                 await client.query('COMMIT');
             } catch (e) {
                 await client.query('ROLLBACK')

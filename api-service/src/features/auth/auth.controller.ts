@@ -135,7 +135,7 @@ module.exports = (app: Express) => {
         }
 
         // Assign new fields
-        account.registerType = constants.AccountRegisterType.get(account.registerTypeId) || "";
+        account.registerType = constants.AccountRegisterTypes.get(account.registerTypeId) || "";
 
         // Remove important fields
         delete account.hash;
@@ -168,7 +168,7 @@ module.exports = (app: Express) => {
         }
 
         // Assign new fields
-        account.registerType = constants.AccountRegisterType.get(account.registerTypeId) || "";
+        account.registerType = constants.AccountRegisterTypes.get(account.registerTypeId) || "";
 
         // Remove important fields
         delete account.hash;

@@ -10,7 +10,25 @@ module.exports = {
         if (Helpers.isNullOrEmpty(email)) {
            return null;
         }
-        let sql = `select * from users where email = $1 limit 1;`
+        let sql = `select
+                       "id",
+                       "fullName",
+                       "registerTypeId",
+                       "email",
+                       hash,
+                       "tempHash",
+                       ceil(extract(epoch from "birthday"::timestamp)) as "birthday",
+                       "gender",
+                       "phoneNumber",
+                       "avatarUrl",
+                       "status",
+                       "onlineStatus",
+                       ceil(extract(epoch from "lastOnlineTime"::timestamp)) as "lastOnlineTime",
+                       ceil(extract(epoch from "createdAt"::timestamp)) as "createdAt",
+                       ceil(extract(epoch from "updatedAt"::timestamp)) as "updatedAt",
+                       "createdBy",
+                       "updatedBy"
+            from users where email = $1 limit 1;`
         const params = [email];
         const result = await db.query(sql, params);
         return result.rows[0];
