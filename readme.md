@@ -21,3 +21,9 @@ $ npm run dev
 
 ### Git
 - Login once: https://www.freecodecamp.org/news/how-to-fix-git-always-asking-for-user-credentials/
+
+### Ubuntu
+- Change timezone: https://linuxize.com/post/how-to-set-or-change-timezone-on-ubuntu-20-04/
+
+### Postgres
+- Explicit convert null timestamp value to use `extract` function: https://stackoverflow.com/questions/36325173/convert-timestamp-column-values-to-epoch-in-postgresql-select-query

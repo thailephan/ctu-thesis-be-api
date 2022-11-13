@@ -27,6 +27,8 @@ const io = new Server(httpServer, {
     }
 });
 
+const channelTyping = new Map<string, Set<number>>();
+
 io.use((socket: OverrideSocket, next) => {
     const token = socket.handshake.auth.accessToken || socket.handshake.headers["access-token"];
     if (Helpers.isNullOrEmpty(token)) {
@@ -168,10 +170,8 @@ io.on("connection", async (socket: OverrideSocket) => {
             socket.emit("chat/mesasge/remove/error", result.data.message);
         }
     });
-    // API search messages
 
     /* TYPING */
-    const channelTyping = new Map<string, Set<number>>();
     socket.on("chat/typing", ({channelId}) => {
         const ok = channelTyping.get(`${channelId}`).add(socket.currentUser.id);
         if (ok) {
@@ -311,6 +311,3 @@ httpServer.listen(config.server.PORT, () => {
  friend/request/reject
  friend/request/accept
  */
-
-/* Constants */
-const messages = new Map<any, any[]>([]);
