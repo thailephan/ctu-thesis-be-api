@@ -32,12 +32,12 @@ WORKDIR /app
 COPY --from=builder /app/main .
 
 # Create a group and user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-RUN chown -R appuser:appgroup /app
-
-USER appuser
-
+#RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+#
+#RUN chown -R appuser:appgroup /app
+#
+#USER appuser
+#
 EXPOSE 8080
 
 CMD ["/app/main"]

@@ -4,9 +4,11 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "tsc && node dist/index.js",
+    "prestart": "npm run build",
+    "start": "cross-env NODE_ENV=production node dist/index.js",
     "lint": "eslint . --ext .ts",
-    "dev": "nodemon src/index.ts",
+    "dev:local": "cross-env NODE_ENV=development_local nodemon src/index.ts",
+    "dev": "cross-env NODE_ENV=development nodemon src/index.ts",
     "test": "cross-env TS_NODE_COMPILER_OPTIONS={\\\"module\\\":\\\"commonjs\\\"} mocha \"tests/**/*.spec.ts\"",
     "build": "tsc -p ."
   },

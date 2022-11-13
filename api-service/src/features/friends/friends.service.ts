@@ -10,20 +10,20 @@ module.exports = {
     async getAllByUserId(id: string) {
         const sql = `
             select ceil(extract(epoch from friends."createdAt")) as "friendSince",
-                   case when not "userId1" = $1 then user2."fullName"
-                        when not "userId2" = $1 then user1."fullName"
+                   case when "userId1" = $1 then user2."fullName"
+                        when "userId2" = $1 then user1."fullName"
                    end as "fullName",
                    case
-                       when not "userId1" = $1 then user2."avatarUrl"
-                       when not "userId2" = $1 then user1."avatarUrl"
+                       when "userId1" = $1 then user2."avatarUrl"
+                       when "userId2" = $1 then user1."avatarUrl"
                    end as "avatarUrl",
                    case
-                   when not "userId1" = $1 then user2.id
-                       when not "userId2" = $1 then user1.id
+                   when "userId1" = $1 then user2.id
+                       when "userId2" = $1 then user1.id
                    end as "friendId",
                    case
-                       when not "userId1" = $1 then user2.email
-                       when not "userId2" = $1 then user1.email
+                       when "userId1" = $1 then user2.email
+                       when "userId2" = $1 then user1.email
                    end as email
             from friends
                 join users user1

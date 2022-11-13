@@ -19,7 +19,6 @@ import (
 func MessageAttachmentUpload(c *gin.Context) {
 	// TODO: Call api for validate auth token
 	print("Key", c.GetHeader("authorization"))
-	channelId := c.PostForm("channelId")
 	// Source
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -40,7 +39,7 @@ func MessageAttachmentUpload(c *gin.Context) {
 
 	now := time.Now()
 	// fileAccessUrl is remove "public" cause we mapping public folder as base of access path
-	dest := path.Join("public", "channels", channelId, strconv.Itoa(now.Year()), strings.ToLower(now.Month().String()[0:3]))
+	dest := path.Join("public", strconv.Itoa(now.Year()), strings.ToLower(now.Month().String()[0:3]))
 	existed, err := pkg.Exists(dest)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -65,7 +64,7 @@ func MessageAttachmentUpload(c *gin.Context) {
 			}
 		}
 
-		fileAccessDest := path.Join("channels", channelId, strconv.Itoa(now.Year()), strings.ToLower(now.Month().String()[0:3]))
+		fileAccessDest := path.Join(strconv.Itoa(now.Year()), strings.ToLower(now.Month().String()[0:3]))
 		baseFileName := path.Base(file.Filename)
 
 		// Normalize steps: replace "  " to " ", " " to "-", lowercase, remove text accent

@@ -20,5 +20,5 @@ module.exports = (app: Express, firebase: any) => {
                 message: e.message,
             });
         }
-    })
+    });
 };

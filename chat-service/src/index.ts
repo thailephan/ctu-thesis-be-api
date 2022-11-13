@@ -1,11 +1,16 @@
 import {DefaultEventsMap} from "socket.io/dist/typed-events";
+import path from "path";
 
-require("dotenv").config();
+require("dotenv").config({
+    path: process.env.NODE_ENV === "development_local" ? path.resolve(process.cwd(), '.env.local.development') : path.resolve(process.cwd(), '.env'),
+});
+
 import { createServer } from "http";
 // import axios from "axios";
 import jwt from 'jsonwebtoken';
 const httpServer = createServer();
 import { Server, Socket } from "socket.io";
+import axios from "axios";
 
 const debug = require("./common/debugger");
 const Helpers = require("./common/helpers");
@@ -13,6 +18,7 @@ const config = require("../config");
 
 interface OverrideSocket extends Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>{
     currentUser?: any;
+    accessToken?: string;
 }
 
 const io = new Server(httpServer, {
@@ -26,29 +32,50 @@ io.use((socket: OverrideSocket, next) => {
     if (Helpers.isNullOrEmpty(token)) {
         return next(new Error("Token bị rỗng"));
     }
-    jwt.verify(token, config.token.access_token_secret, (err: any, decoded: any) => {
+    jwt.verify(token, config.token.access_token_secret, async (err: any, decoded: any) => {
         if (err) {
             debug.middleware(err)
             return next(new Error("access token không đúng"));
         } else {
+            const instance = axios.create({
+                baseURL: config.apiService.URL,
+                timeout: 1000,
+                headers: {
+                    authorization: `Bearer ${token}`
+                }
+            });
+
             socket.currentUser = decoded;
+            socket.accessToken = token;
             // TODO: Load channels of connected user
-            // TODO: Join users to channels
-            const roomIds = channels.map(r => `${r.id}`);
-            console.log(decoded.id, roomIds);
-            socket.join(roomIds);
+            const result = await instance.get("/channels/getAll");
+            if (result.data.success) {
+                // TODO: Join users to channels
+                const roomIds = result.data.data.map(r => `${r.id}`);
+                console.log(roomIds);
+                socket.join([...roomIds, "users/" + decoded.id]);
+            } else {
+                socket.emit("error", "Unable to load instance");
+            }
             next();
         }
     });
 });
 
 // const userid_socket = new Map();
-io.on("connection", (socket: OverrideSocket) => {
+io.on("connection", async (socket: OverrideSocket) => {
     // console.log(socket.currentUser);
     console.log('socket connect...', socket.id);
-    // console.log(channels);
-    socket.emit("chat/channel/sync", {channels: channels});
 
+    const instance = axios.create({
+        baseURL: config.apiService.URL,
+        timeout: 1000,
+        headers: {
+            authorization: `Bearer ${socket.accessToken}`
+        }
+    });
+
+    // socket.emit("chat/channel/sync", {channels: channels});
     /* Common event */
     // When disconnect
     socket.on('disconnect', function (reason) {
@@ -73,72 +100,76 @@ io.on("connection", (socket: OverrideSocket) => {
     // });
 
     /* CHAT */
-    socket.on("chat/message/send", ({channelId, message, replyForId, messageTypeId}) => {
+    // Gửi tin nhắn vào nhóm với channenId
+    socket.on("chat/message/send", async ({ channelId, message, replyForId, messageTypeId }) => {
         // TODO: check user in channel or not
-        console.log({message, replyForId, channelId, messageTypeId});
-        console.log(messages);
-        const channelMessages = messages.get(channelId.toString()) || [];
+        console.log({ message, replyForId, channelId, messageTypeId });
         if (Helpers.isNullOrEmpty(message)) {
-            socket.emit("chat/message/send", { error: "Tin nhắn không được trống", success: false });
+            socket.emit("chat/message/send/error", { error: "Tin nhắn không được trống", success: false });
             return;
         } else {
-            // TODO: Check if current size of room with channelId is > 2, then set msg status is true
-            // const numOnlineUsers = io.sockets.adapter.rooms.get(`${channelId}`).size;
             // TODO: Save data to database and read back
-            const replyMessage = channelMessages.find(m => m.id.toString() === replyForId?.toString());
             const newMessage = {
-                id: channelMessages.length + 1,
-                channelId: `${channelId}`,
-                createdAt: (new Date()).getTime(),
-                createdBy: socket.currentUser.id,
+                channelId: channelId,
                 messageTypeId,
                 message,
-                status: 1, // 1 is sent, 2 is received, 3 is seen, -1 is deleted
-                replyMessage,
-                senderFullName: socket.currentUser.fullName,
-                senderAvatarUrl: socket.currentUser.avatarUrl,
+                // status: 1, // 1 is sent, 2 is received, 3 is seen, -1 is deleted
+                replyForId,
             };
-            channelMessages.push(newMessage);
-            messages.set(channelId.toString(), channelMessages);
 
-            io.to(`${channelId}`).emit("chat/message/send", {
-                channelId,
-                message: {
+            const result = await instance.post("/messages", newMessage);
+            debug.socket("/chat/message/send api log", result.data);
+            if (result.data.success) {
+                io.to(`${channelId}`).emit("chat/message/send", {
+                    channelId,
                     senderId: socket.currentUser.id,
-                    username: socket.currentUser.fullName,
-                    avatarUrl: socket.currentUser.avatarUrl,
-                    ...newMessage
-                },
-            });
+                    senderFullName: socket.currentUser.fullName,
+                    senderAvatarUrl: socket.currentUser.avatarUrl,
+                    message: {
+                        ...result.data.data,
+                    },
+                });
+            } else {
+                socket.emit("chat/message/send/error", result.data.message);
+            }
         }
     });
+    // Xử lý status của message
     socket.on("chat/message/received", ({messageId, channelId}) => {
-        // TODO: if status of message is === 2 then do nothing
-        // TODO: Update status of message with id = *messageId* and has channel's id = *channelId*
-        // TODO: Update readMembers of message to load how many user has read that messages
+        // TODO: Update readMembers of message to load how many user has read that messages - not enough time
         // TODO: Emit event to channel id
-        socket.broadcast.to(`${channelId}`).emit("chat/message/received", {
+        io.to(`${channelId}`).emit("chat/message/received", {
             messageId,
             channelId,
-            responseUserId: socket.currentUser.id,
-            responseUserAvatarUrl: socket.currentUser.avatarUrl,
+            senderId: socket.currentUser.id,
         });
     });
-    socket.on("chat/message/seen", ({messageId, channelId}) => {
-        // TODO: Update status of message with id = *messageId* and has channel's id = *channelId*
+    socket.on("chat/message/seen", async ({messageId, channelId}) => {
         // TODO: Update readMembers of message to load how many user has read that messages
+        await instance.post("/messages/seen", { messageId, channelId });
         // TODO: Emit event to channel id
-        io.to(`${channelId}`).emit("chat/message/seen", { // TODO: change `io` back to `socket.broadcast` later
+        io.to(`${channelId}`).emit("chat/message/seen", {
             messageId,
             channelId,
-            responseUserId: socket.currentUser.id,
-            responseUserAvatarUrl: socket.currentUser.avatarUrl,
+            senderId: socket.currentUser.id,
         });
     });
-    socket.on("chat/message/sync", ({channelId}) => {
-        // TODO: Call api to get message of channel with id and return back
-        socket.emit("chat/message/sync", {channelId, messages: [...messages.values()]});
-    })
+    socket.on("chat/message/remove", async ({ messageId, channelId }) => {
+        // TODO: Call api to set status of message to -1
+        const result = await instance.post("/messages/delete", {
+            messageId, channelId
+        });
+        if (result.data.success) {
+            io.to(channelId.toString()).emit("chat/message/remove", {
+                messageId, channelId,
+                senderId: socket.currentUser.id,
+            })
+        } else {
+            socket.emit("chat/mesasge/remove/error", result.data.message);
+        }
+    });
+    // API search messages
+
     /* TYPING */
     const channelTyping = new Map<string, Set<number>>();
     socket.on("chat/typing", ({channelId}) => {
@@ -146,10 +177,13 @@ io.on("connection", (socket: OverrideSocket) => {
         if (ok) {
             io.to(`${channelId}`).emit("chat/typing", {
                 typingIds: channelTyping.get(`${channelId}`).values(),
-                fromId: socket.currentUser.id,
+                senderId: socket.currentUser.id,
             });
         } else {
-            // TODO: Emit back to emitter
+            socket.emit("chat/typing/error", {
+                message: "không biết lỗi gì",
+                senderId: socket.currentUser.id,
+            });
         }
     });
     socket.on("chat/untyping", ({channelId}) => {
@@ -157,13 +191,67 @@ io.on("connection", (socket: OverrideSocket) => {
         if (ok) {
             io.to(`${channelId}`).emit("chat/untyping", {
                 typingIds: channelTyping.get(`${channelId}`).values(),
-                fromId: socket.currentUser.id,
+                senderId: socket.currentUser.id,
             });
         } else {
-            // TODO: Emit back to emitter
+            socket.emit("chat/untyping/error", {
+                message: "không biết lỗi gì",
+                senderId: socket.currentUser.id,
+            });
         }
     });
 
+    /* USER */
+    socket.on("user/delete", () => {
+        const user = socket.currentUser;
+    });
+
+    /* FRIEND */
+    socket.on("invitation/send", async ({ receiverId }) => {
+        const user = socket.currentUser;
+
+        const result = await instance.post("/invitations/inviteUserId", {
+            id: receiverId,
+        });
+
+        if (result.data.success) {
+            io.to("users/" + receiverId).emit("invitation/send", { senderId: user.id, receiverId: receiverId });
+            socket.emit("invitation/send", { senderId: user.id, receiverId: receiverId })
+        } else {
+            socket.emit("invitation/send/error", result.data.message);
+        }
+    });
+    // For both sender cancel and receiver reject
+    socket.on("invitation/cancel", async ({ receiverId }) => {
+        const user = socket.currentUser;
+
+        const result = await instance.post("/invitations/delete", {
+            id: receiverId,
+        });
+
+        if (result.data.success) {
+            io.to("users/" + receiverId).emit("invitation/cancel", { senderId: user.id, receiverId: receiverId });
+            socket.emit("invitation/cancel", { senderId: user.id, receiverId: receiverId });
+        } else {
+            socket.emit("invitation/cancel/error", result.data.message);
+        }
+    });
+    socket.on("invitation/accept", async ({ senderId, receiverId }) => {
+        const user = socket.currentUser;
+
+        const result = await instance.post("/invitations/accept", {
+            id: receiverId,
+        });
+
+        if (result.data.success) {
+            io.to("users/" + receiverId).emit("invitation/accept", { senderId: user.id, receiverId: receiverId });
+            socket.emit("invitation/accept", { senderId: user.id, receiverId: receiverId })
+        } else {
+            socket.emit("invitation/accept/error", result.data.message);
+        }
+    });
+
+    // API Update user data
 
     // Friend / Base
     // socket.on('friend/base/unfriend', function () {
@@ -225,32 +313,4 @@ httpServer.listen(config.server.PORT, () => {
  */
 
 /* Constants */
-
-const users = [{"id":1,"fullName":"Thai Le","registerTypeId":1,"hash":"$2a$10$ZCeiJJGIh0f9j5lTip9VW.Vu.C.jw6ah8wxzKm5RF7WuFr7s2QWqa","tempHash":null,"email":"thailephanminh1@gmail.com","birthday":null,"gender":null,"phoneNumber":null,"avatarUrl":null,"status":1,"createdAt":"2022-11-03T15:17:39.332772","updatedAt":"2022-11-03T15:17:39.332772","createdBy":null,"updatedBy":null,"onlineStatus":null,"lastOnlineTime":null},
- {"id":2,"fullName":"Sang Phan","registerTypeId":1,"hash":"$2a$10$nPD2M9RH7GdVP46q4VFaAeMz.WoNUR6hjsAP.hh5TOIMyHg68kP4q","tempHash":null,"email":"phansang@gmail.com","birthday":null,"gender":null,"phoneNumber":null,"avatarUrl":null,"status":1,"createdAt":"2022-11-03T16:59:23.685694","updatedAt":"2022-11-03T16:59:23.685694","createdBy":null,"updatedBy":null,"onlineStatus":null,"lastOnlineTime":null},
- {"id":3,"fullName":"Anh Le","registerTypeId":1,"hash":"$2a$10$9BRdsFY/nTGjPddp4.dkZeO6eFkheEOGgLhC5.Y8Za/e3Mv8FQhY.","tempHash":null,"email":"quocanhle@gmail.com","birthday":null,"gender":null,"phoneNumber":null,"avatarUrl":null,"status":1,"createdAt":"2022-11-03T18:00:01.354334","updatedAt":"2022-11-03T18:00:01.354334","createdBy":null,"updatedBy":null,"onlineStatus":null,"lastOnlineTime":null},
- {"id":4,"fullName":"Tuấn Trần Quốc","registerTypeId":1,"hash":"$2a$10$ZCeiJJGIh0f9j5lTip9VW.Vu.C.jw6ah8wxzKm5RF7WuFr7s2QWqa","tempHash":null,"email":"quoctuan.tran@gmail.com","birthday":null,"gender":null,"phoneNumber":null,"avatarUrl":null,"status":1,"createdAt":"2022-11-04T16:39:47.617062","updatedAt":"2022-11-04T16:39:47.617062","createdBy":null,"updatedBy":null,"onlineStatus":null,"lastOnlineTime":null},
- {"id":5,"fullName":"Lưu Tinh Vũ","registerTypeId":1,"hash":"$2a$10$ZCeiJJGIh0f9j5lTip9VW.Vu.C.jw6ah8wxzKm5RF7WuFr7s2QWqa","tempHash":null,"email":"tinhvu99@gmail.com","birthday":null,"gender":null,"phoneNumber":null,"avatarUrl":null,"status":1,"createdAt":"2022-11-04T16:39:47.681094","updatedAt":"2022-11-04T16:39:47.681094","createdBy":null,"updatedBy":null,"onlineStatus":null,"lastOnlineTime":null},
- {"id":6,"fullName":"Phong Ánh","registerTypeId":1,"hash":"$2a$10$ZCeiJJGIh0f9j5lTip9VW.Vu.C.jw6ah8wxzKm5RF7WuFr7s2QWqa","tempHash":null,"email":"anhphong@gmail.com","birthday":null,"gender":null,"phoneNumber":null,"avatarUrl":null,"status":1,"createdAt":"2022-11-04T16:39:47.734982","updatedAt":"2022-11-04T16:39:47.734982","createdBy":null,"updatedBy":null,"onlineStatus":null,"lastOnlineTime":null}];
-
-const accessToken =[
-    {id: 1, value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZnVsbE5hbWUiOiJUaGFpIExlIiwicmVnaXN0ZXJUeXBlSWQiOjEsImVtYWlsIjoidGhhaWxlcGhhbm1pbmgxQGdtYWlsLmNvbSIsImJpcnRoZGF5IjpudWxsLCJnZW5kZXIiOm51bGwsInBob25lTnVtYmVyIjpudWxsLCJhdmF0YXJVcmwiOm51bGwsInN0YXR1cyI6MSwiY3JlYXRlZEF0IjoiMjAyMi0xMS0wM1QwODoxNzozOS4zMzJaIiwidXBkYXRlZEF0IjoiMjAyMi0xMS0wM1QwODoxNzozOS4zMzJaIiwiY3JlYXRlZEJ5IjpudWxsLCJ1cGRhdGVkQnkiOm51bGwsInJlZ2lzdGVyVHlwZSI6ImVtYWlsL3Bhc3N3b3JkIiwiaWF0IjoxNjY3NTMwMjAzfQ.o1Doq8JO3sDiwgNduPpXHXRAtJgJKeq8CncnOoqqJ6Y"},
-    {id: 2, value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZnVsbE5hbWUiOiJTYW5nIFBoYW4iLCJyZWdpc3RlclR5cGVJZCI6MSwiZW1haWwiOiJwaGFuc2FuZ0BnbWFpbC5jb20iLCJiaXJ0aGRheSI6bnVsbCwiZ2VuZGVyIjpudWxsLCJwaG9uZU51bWJlciI6bnVsbCwiYXZhdGFyVXJsIjpudWxsLCJzdGF0dXMiOjEsImNyZWF0ZWRBdCI6IjIwMjItMTEtMDNUMDk6NTk6MjMuNjg1WiIsInVwZGF0ZWRBdCI6IjIwMjItMTEtMDNUMDk6NTk6MjMuNjg1WiIsImNyZWF0ZWRCeSI6bnVsbCwidXBkYXRlZEJ5IjpudWxsLCJyZWdpc3RlclR5cGUiOiJlbWFpbC9wYXNzd29yZCIsImlhdCI6MTY2NzUzMDI0Nn0.nqPHzxFrMek2GUwOxi7Bgsw9QduE4mkKm1b8X9g0yRI"},
-    {id: 2, value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiZnVsbE5hbWUiOiJBbmggTGUiLCJyZWdpc3RlclR5cGVJZCI6MSwiaGFzaCI6IiQyYSQxMCQ5QlJkc0ZZL25UR2pQZGRwNC5ka1plTzZlRmtoZUVPR2dMaEM1Llk4WmEvZTNNdjhGUWhZLiIsInRlbXBIYXNoIjpudWxsLCJlbWFpbCI6InF1b2NhbmhsZUBnbWFpbC5jb20iLCJiaXJ0aGRheSI6bnVsbCwiZ2VuZGVyIjpudWxsLCJwaG9uZU51bWJlciI6bnVsbCwiYXZhdGFyVXJsIjpudWxsLCJzdGF0dXMiOjEsImNyZWF0ZWRBdCI6IjIwMjItMTEtMDNUMTg6MDA6MDEuMzU0MzM0IiwidXBkYXRlZEF0IjoiMjAyMi0xMS0wM1QxODowMDowMS4zNTQzMzQiLCJjcmVhdGVkQnkiOm51bGwsInVwZGF0ZWRCeSI6bnVsbCwib25saW5lU3RhdHVzIjpudWxsLCJsYXN0T25saW5lVGltZSI6bnVsbH0.dLLuE1VdYWhn8CNrUeXqsfgskjD9UFUZ_Z52PRfDLaY"},
-];
-
-const channels = [{"id":1,"channelTypeId":1,"status":1,"createdAt":"2022-11-05T15:12:45.476545"},
- {"id":2,"channelTypeId":2,"status":1,"createdAt":"2022-11-05T15:12:45.513632"},
- {"id":3,"channelTypeId":1,"status":1,"createdAt":"2022-11-05T15:12:45.553667"},
- ];
-
-const channelMembers = [{"channelId":1,"memberId":1,"joinAt":"2022-11-05T15:13:11.388375","invitedBy":null,"status":1},
- {"channelId":1,"memberId":2,"joinAt":"2022-11-05T15:13:11.427342","invitedBy":null,"status":1},
- {"channelId":3,"memberId":1,"joinAt":"2022-11-05T15:13:11.457457","invitedBy":null,"status":1},
- {"channelId":3,"memberId":3,"joinAt":"2022-11-05T15:13:11.499647","invitedBy":null,"status":1},
- {"channelId":2,"memberId":1,"joinAt":"2022-11-05T17:05:22.123106","invitedBy":null,"status":1},
- {"channelId":2,"memberId":2,"joinAt":"2022-11-05T17:05:22.160148","invitedBy":null,"status":1},
- {"channelId":2,"memberId":3,"joinAt":"2022-11-05T17:05:22.206937","invitedBy":1,"status":1}];
-
 const messages = new Map<any, any[]>([]);
-

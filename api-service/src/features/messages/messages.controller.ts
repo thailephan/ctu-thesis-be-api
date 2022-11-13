@@ -20,10 +20,11 @@ module.exports = (app: Express) => {
     app.post('/messages', middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const senderId = req.user.id;
-        const { channelId, messageTypeId, message, replyForMessageId } = req.body;
-
+        const { channelId, messageTypeId, message, replyForId, createdBy = senderId } = req.body;
+        debug.api("/mesasges post log body", req.body);
         // validate input
         if (Helpers.isNullOrEmpty(messageTypeId)) {
+            console.log(messageTypeId);
             return res.status(200).json({
                 data: null,
                 success: false,
@@ -45,12 +46,15 @@ module.exports = (app: Express) => {
            });
         }
         // TODO: Validate user in channel?
+        // TODO: Validate replyForId with curernt msg id
 
         try {
             // Save to database
-            const newMesssage = await service.createMessage({ channelId, messageTypeId, message, replyForMessageId });
+            const newMessage = await service.createMessage({ channelId, messageTypeId, message, replyForId, createdBy });
+            await service.createUserReadForMesasge( { messageId: newMessage.id, channelId, createdBy: senderId });
+
             return res.status(200).json({
-                data: newMesssage,
+                data: newMessage,
                 success: true,
                 message: null,
             });
@@ -61,9 +65,77 @@ module.exports = (app: Express) => {
                 message: e.message,
             });
         }
-
     });
     // TODO: Search message
 
     // TODO: Remove message (change status to -1)
+    app.post("/messages/delete", async (req, res) => {
+        const { messageId, channelId } = req.body;
+
+        if (Helpers.isNullOrEmpty(messageId)) {
+            return res.status(200).json({
+                data: null,
+                success: false,
+                message: "'messageId' không được để trống",
+            });
+        }
+        if (Helpers.isNullOrEmpty(channelId)) {
+            return res.status(200).json({
+                data: null,
+                success: false,
+                message: "'channelId' không được để trống",
+            });
+        }
+
+        try {
+            await service.deleteMessage({messageId, channelId});
+            return res.status(200).json({
+                success: true,
+                message: null,
+                data: null,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                message: e.message,
+                data: null,
+            });
+        }
+    });
+
+    app.post("/messages/seen", async (req, res) => {
+        // @ts-ignore
+        const senderId = req.user.id;
+        const { messageId, channelId } = req.body;
+
+        if (Helpers.isNullOrEmpty(messageId)) {
+            return res.status(200).json({
+                data: null,
+                success: false,
+                message: "'messageId' không được để trống",
+            });
+        }
+        if (Helpers.isNullOrEmpty(channelId)) {
+            return res.status(200).json({
+                data: null,
+                success: false,
+                message: "'channelId' không được để trống",
+            });
+        }
+
+        try {
+            await service.updateUserReadMessage({ senderId, messageId, channelId });
+            return res.status(200).json({
+                success: true,
+                data: null,
+                message: null,
+            });
+        } catch (e) {
+           return res.status(200).json({
+               success: false,
+               data: null,
+               message: e.message,
+           })
+        }
+    });
 };

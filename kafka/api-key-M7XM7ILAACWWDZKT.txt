@@ -1,0 +1,10 @@
+=== Confluent Cloud API key: lkc-pg78zy ===
+
+API key:
+M7XM7ILAACWWDZKT
+
+API secret:
+Xtj0hf7j45M+dE1WS/bREzHnkky6yq5DZz754N0W4wzjKCvpHqW62uoCuljJcxXH
+
+Bootstrap server:
+pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092

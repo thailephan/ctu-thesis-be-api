@@ -42,8 +42,8 @@ services:
       - "./nginx.conf:/etc/nginx/nginx.conf"
     depends_on:
       - asset-service
-    networks:
-      - asset-network
+#    networks:
+#      - asset-network
 
   asset-service:
     build:
@@ -52,12 +52,12 @@ services:
     container_name: asset-service
     hostname: asset-service
 #    Uncomment to expose to connect direct by port 8080 of server
-#    ports:
-#      - "8080:8080"
+    ports:
+      - "8080:8080"
     volumes:
       - "./asset-service/public:/app/public"
-    networks:
-      - asset-network
+#    networks:
+#      - asset-network
 
 #  api-service:
 #    build:
@@ -112,10 +112,10 @@ services:
 #  app-network:
 #    driver: bridge
 
-networks:
-  api-network:
-    driver: bridge
-  chat-network:
-    driver: bridge
-  asset-network:
-    driver: bridge
+#networks:
+#  api-network:
+#    driver: bridge
+#  chat-network:
+#    driver: bridge
+#  asset-network:
+#    driver: bridge
