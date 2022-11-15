@@ -28,7 +28,7 @@ module.exports = {
             from friends
                 join users user1
             on user1.id = friends."userId1"
-                join users user2 on user2.id = friends."userId2" where "userId1" = $1 or "userId2" = $1 and friends.status = 1;
+                join users user2 on user2.id = friends."userId2" where friends.status = 1 and ("userId1" = $1 or "userId2" = $1);
         `;
         const params = [id]
         const result = await db.query(sql, params);
