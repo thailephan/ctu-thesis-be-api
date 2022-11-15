@@ -24,10 +24,13 @@ module.exports = (app: Express, firebase: any) => {
     app.post("/users/update", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const user = req.user;
-        const { fullName = user.fullName, birthday = user.birthday, gender = user.gender, phoneNumber = user.phoneNumber, avatarUrl = user.avatarUrl } = req.body;
+        const { fullName = user.fullName, birthday = user.birthday, gender, phoneNumber = user.phoneNumber, avatarUrl = user.avatarUrl } = req.body;
 
+        const dbGender = Helpers.isNullOrEmpty(gender) ? user.gender : gender;
+        console.log(dbGender);
         try {
-            const updatedUser = await service.updateUser({id: user.id, fullName, birthday, gender, phoneNumber, avatarUrl});
+            const updatedUser = await service.updateUser({id: user.id, fullName, birthday,
+                gender: dbGender, phoneNumber, avatarUrl});
             const payload = {...updatedUser};
 
             delete payload.hash;
@@ -51,4 +54,27 @@ module.exports = (app: Express, firebase: any) => {
             });
         }
     });
+    app.post("/users/lock-account", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const user = req.user;
+
+        try {
+            const lockedUser = await service.lockUser({ userId: user.id });
+
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                data: lockedUser,
+                message: null,
+            });
+        }  catch (e) {
+            return res.status(200).json({
+                statusCode: 400,
+                success: false,
+                data: null,
+                message: e.message,
+            });
+        }
+    });
+    // TODO: Unlock user account
 };

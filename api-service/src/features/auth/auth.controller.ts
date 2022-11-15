@@ -16,6 +16,7 @@ module.exports = (app: Express) => {
             status: 200,
             message: null,
             data: null,
+            success: true,
         })
     });
     app.post("/auth/check_mail_registered", async (req, res) => {
@@ -146,7 +147,7 @@ module.exports = (app: Express) => {
         return res.status(200).json({
             success: true,
             message: null,
-            statusCode: 400,
+            statusCode: 200,
             data: {
                 accessToken: Helpers.generateToken(payload),
             },
@@ -179,6 +180,7 @@ module.exports = (app: Express) => {
         return res.status(200).json({
             success: true,
             message: null,
+            statusCode: 200,
             data: {
                 accessToken: Helpers.generateToken(payload),
             },

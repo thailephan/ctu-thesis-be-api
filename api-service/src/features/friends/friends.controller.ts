@@ -25,4 +25,24 @@ module.exports = (app: Express) => {
             })
         }
     });
+    app.post("/friends/unfriend", middleware.verifyToken, async (req, res) => {
+        const receiverId = req.body.receiverId;
+        // @ts-ignore
+        const user = req.user;
+
+        try {
+            const channel = await service.unFriend({ userId1: user.id, userId2: receiverId});
+            return res.status(200).json({
+                message: null,
+                data: channel,
+                success: true,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                data: null,
+                success: false,
+            })
+        }
+    });
 };

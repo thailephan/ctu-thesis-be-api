@@ -129,10 +129,10 @@ module.exports = (app: Express) => {
             });
         }
         try {
-            await service.addFriend(userId1, parseInt(userId2));
+            const channel = await service.addFriend(userId1, parseInt(userId2));
 
             return res.status(200).json({
-                data: null,
+                data: channel,
                 success: true,
                 message: null,
             });
@@ -142,6 +142,46 @@ module.exports = (app: Express) => {
                 success: false,
                 message: e.message,
             });
+        }
+    });
+
+    app.post("/friends/areFriendWith", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const user = req.user;
+        const { otherUserId } = req.body;
+
+        if (Helpers.isNullOrEmpty(otherUserId)) {
+            return res.status(200).json({
+                message: "Id không hợp lệ",
+                data: null,
+                success: false,
+            });
+        }
+
+        try {
+            if (!Helpers.isNullOrEmpty(await service.isBothAreFriends(user.id, otherUserId))) {
+                return res.status(200).json({
+                    message: "Là bạn bè",
+                    data: {
+                        areFriend: true,
+                    },
+                    success: true,
+                })
+            } else {
+                return res.status(200).json({
+                    message: "Không là bạn bè",
+                    data: {
+                        areFriend: false,
+                    },
+                    success: true,
+                })
+            }
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                data: null,
+                success: false,
+            })
         }
     });
 };

@@ -14,15 +14,15 @@ module.exports = {
             "fullName",
             "registerTypeId",
             "email",
-            ceil(extract(epoch from "birthday"::timestamp)) as "birthday",
+            ceil(extract(epoch from "birthday"::timestamp))::int as "birthday",
             "gender",
             "phoneNumber",
             "avatarUrl",
             "status",
             "onlineStatus",
-            ceil(extract(epoch from "lastOnlineTime"::timestamp)) as "lastOnlineTime",
-            ceil(extract(epoch from "createdAt"::timestamp)) as "createdAt",
-            ceil(extract(epoch from "updatedAt"::timestamp)) as "updatedAt",
+            ceil(extract(epoch from "lastOnlineTime"::timestamp))::int as "lastOnlineTime",
+            ceil(extract(epoch from "createdAt"::timestamp))::int as "createdAt",
+            ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
             "createdBy",
             "updatedBy"
         from users`;
@@ -36,19 +36,41 @@ module.exports = {
                          "fullName",
                          "registerTypeId",
                          "email",
-                         ceil(extract(epoch from "birthday"::timestamp)) as "birthday",
+                         ceil(extract(epoch from "birthday"::timestamp))::int as "birthday",
                          "gender",
                          "phoneNumber",
                          "avatarUrl",
                          "status",
                          "onlineStatus",
-                         ceil(extract(epoch from "lastOnlineTime"::timestamp)) as "lastOnlineTime",
-                         ceil(extract(epoch from "createdAt"::timestamp)) as "createdAt",
-                         ceil(extract(epoch from "updatedAt"::timestamp)) as "updatedAt",
+                         ceil(extract(epoch from "lastOnlineTime"::timestamp))::int as "lastOnlineTime",
+                         ceil(extract(epoch from "createdAt"::timestamp))::int as "createdAt",
+                         ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
                          "createdBy",
                          "updatedBy"`;
         const params = [id, fullName, birthday, gender, phoneNumber, avatarUrl];
         const result = await db.query(sql, params);
         return result.rows[0];
     },
+    // TODO: user cannot login after lock account
+    lockUser: async ({ userId }: any) => {
+        const sql = `update users set status = 2 where id = $1
+                         returning "id",
+                         "fullName",
+                         "registerTypeId",
+                         "email",
+                         ceil(extract(epoch from "birthday"::timestamp))::int as "birthday",
+                         "gender",
+                         "phoneNumber",
+                         "avatarUrl",
+                         "status",
+                         "onlineStatus",
+                         ceil(extract(epoch from "lastOnlineTime"::timestamp))::int as "lastOnlineTime",
+                         ceil(extract(epoch from "createdAt"::timestamp))::int as "createdAt",
+                         ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
+                         "createdBy",
+                         "updatedBy";
+        `;
+        const result = await db.query(sql, [userId]);
+        return result.rows[0];
+    }
 };

@@ -87,8 +87,10 @@ module.exports = (app: Express) => {
         }
     });
     app.get("/channels/getAllFriendChannels", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const userId = req.user.id;
         try {
-            const channels = await service.getAllFriendChannels(1);
+            const channels = await service.getAllFriendChannels(userId);
 
             return res.status(200).json({
                 message: null,

@@ -1,4 +1,5 @@
 import {ICondition, IQueryParams} from "../../common/interface";
+import {add} from "winston";
 
 const db = require("../../repository");
 const debug = require("../../common/debugger");
@@ -15,7 +16,7 @@ module.exports = {
         //         join users toUser on invitations."receiverId" = toUser.id
         //     where "senderId" = $1 OR "receiverId" = $1;`;
         const sql = `
-            select ceil(extract(epoch from invitations."createdAt")) as "createdAt",
+            select ceil(extract(epoch from invitations."createdAt"))::int as "createdAt",
                    "senderId",
                    "receiverId",
                 case
@@ -65,9 +66,10 @@ module.exports = {
         await db.query(sql ,params);
 
         const sqlSelectNew = `
-            select "senderId", "receiverId", invitations."createdAt" as "createdAt",
+            select "senderId", "receiverId",
                    fromUser."fullName" as "senderFullname", fromUser.email as "senderEmail", fromUser."avatarUrl" as "senderAvatarurl",
                    toUser."fullName" as "receiverFullname", toUser.email as "receiverEmail", toUser."avatarUrl" as "receiverAvatarurl"
+                    , ceil(extract(epoch from invitations."createdAt"))::int as "createdAt" 
             from invitations
                 join users fromUser on invitations."senderId" = fromUser.id
                 join users toUser on invitations."receiverId" = toUser.id
@@ -77,8 +79,7 @@ module.exports = {
         return result.rows[0];
     },
     isBothAreFriends: async (senderId: number, receiverId: number) => {
-       const sql = `
-            select * from friends where ("userId1" = $1 and "userId2" = $2) or ("userId2" = $1 and "userId1" = $2) `;
+       const sql = `select * from friends where status = 1 and (("userId1" = $1 and "userId2" = $2) or ("userId2" = $1 and "userId1" = $2)) order by "createdAt" desc limit 1;`;
         const params = [senderId, receiverId];
         const result = await db.query(sql, params);
         return result.rows[0];
@@ -118,28 +119,32 @@ module.exports = {
             const client = await db.getClient();
 
             try {
-                await client.query('BEGIN');
+                await client.query('BEGIN;');
                 const deleteInvitationSql = `delete from invitations where ("senderId" = $1 and "receiverId" = $2) or ("senderId" = $2 and "receiverId" = $1);`
                 const addFriendSql = `insert into friends("userId1", "userId2") values ($1, $2);`;
 
-                await Promise.all([client.query(deleteInvitationSql, params), client.query(addFriendSql, params)])
+                await client.query(deleteInvitationSql, params);
+                await client.query(addFriendSql, params);
                 debug.db("invitation:addFriend", {
                     invitation: deleteInvitationSql,
                     friend: addFriendSql
                 });
 
-                const createChannel = `insert into channels("channelTypeId", status) values ($1, $2) returning *`;
-                const createChannelParams = [1, 1];
+                const createChannel = `insert into channels("channelTypeId") values ($1) returning *`;
+                const createChannelParams = [1];
                 const createChannelResult = await db.query(createChannel, createChannelParams);
                 const channel = createChannelResult.rows[0];
-                if (channel) {
-                    const addChannelMembers = `insert into channelmembers("channelId", "memberId") values ($1, $2);insert into channelmembers("channelId", "memberId") values ($1, $3);`;
-                    const addChannelMembersParams = [channel.id, senderId, receiverId];
-                    await db.query(createChannel, createChannelParams);
-                } else {
-                    throw Error("Không thể tạo channel");
-                }
+
+                const addMember = `insert into channelmembers("channelId", "memberId") values ($1, $2);`
+                // const addMember2Params = [channel.id, receiverId];
+                await db.query(addMember, [channel.id, senderId]);
+                await db.query(addMember, [channel.id, receiverId]);
+                // await db.query(createChannel, createChannelParams);
+
+                await client.query('END;');
                 await client.query('COMMIT');
+
+                return channel;
             } catch (e) {
                 await client.query('ROLLBACK')
                 throw e

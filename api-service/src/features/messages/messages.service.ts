@@ -6,7 +6,7 @@ const client = require("../../repository/cassandra");
 
 module.exports = {
     getAll: async ({ channelId }: IMessageQueryParams) => {
-        const result = await client.execute(`select * from messagesByChannels where "channelId" = ${channelId};`);
+        const result = await client.execute(`select id, message, "channelId", "messageTypeId", status, "createdBy", "replyForId", tounixtimestamp("createdAt") / 1000 as "createdAt" from messagesByChannels where "channelId" = ?`, [channelId], {prepare: true});
         return result.rows;
     },
     createMessage: async ({

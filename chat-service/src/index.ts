@@ -246,24 +246,84 @@ io.on("connection", async (socket: OverrideSocket) => {
         if (result.data.success) {
             io.to("users/" + receiverId).emit("invitation/accept", { senderId: user.id, receiverId: receiverId });
             socket.emit("invitation/accept", { senderId: user.id, receiverId: receiverId })
+            console.log("Join A", socket.rooms);
+            io.in([user.id, receiverId].map(id => "users/" + id)).socketsJoin(result.data.data.id.toString());
+            console.log("Join B", socket.rooms);
         } else {
             socket.emit("invitation/accept/error", result.data.message);
         }
     });
 
-    // API Update user data
+    /* FRIEND */
+    socket.on("friend/unfriend", async ({ receiverId }) => {
+        const user = socket.currentUser;
 
-    // Friend / Base
-    // socket.on('friend/base/unfriend', function () {
-    //
-    // });
-    // require("./features/chat.socket")(io, socket);
-    //
-    // // Friend / Request
-    // require("./features/invitations.socket")(io, socket);
-    //
-    // // # Chat / base / typing
-    // require("./features/typing.socket")(io, socket);
+        const result = await instance.post("/friends/unfriend", {
+            receiverId,
+        });
+        if (result.data.success) {
+            io.to("users/" + receiverId).emit("friend/unfriend", { senderId: user.id, receiverId: receiverId, channelId: result.data.data.id });
+            socket.emit("friend/unfriend", { senderId: user.id, receiverId: receiverId, channelId: result.data.data.id });
+            console.log("Leave A", socket.rooms);
+            io.in([user.id, receiverId].map(id => "users/" + id)).socketsLeave(result.data.data.id.toString());
+            console.log("Leave B", socket.rooms);
+        } else {
+            socket.emit("friend/unfriend/error", result.data.message);
+        }
+    });
+
+    /* CHANNEL */
+    // TODO: Tạo nhóm
+    socket.on("channel/create", async ({ userIds, channelName, channelAvatar }) => {
+        const result = await instance.post("/channels/create-group-channel", {
+            userIds,
+            channelName,
+            channelAvatar,
+        });
+        if (result.data.success) {
+           const channel = result.data.data;
+           // TODO: Join sockets of users into new channel id
+            io.in(userIds.map(id => "users/" + id)).socketsJoin(channel.id.toString());
+           // TODO: Emit event channel/create
+            io.to(channel.id.toString()).emit("channel/create", {
+                channel,
+                memberIds: userIds,
+            });
+        } else {
+            socket.emit("channel/create/error", result.data.message);
+        }
+    });
+    // TODO: Đổi thông tin nhóm - update information
+    // Name, AvatarUrl
+    socket.on("channel/update-information", async ({ channelName, channelId, channelAvatarUrl }) => {
+        const result = await instance.post("/channels/update-information", {
+            channelId,
+            channelName,
+            channelAvatarUrl,
+        });
+        if (result.data.success) {
+            const channel = result.data.data;
+            // TODO: Emit event channel/create
+            io.to(channelId.toString()).emit("channel/update-information", { channel });
+        } else {
+            socket.emit("channel/create/error", result.data.message);
+        }
+    });
+    // Xóa bỏ nhóm
+    socket.on("channel/dissolve", async ({  }) => { });
+
+    /* CHANNEL MEMBER */
+    // Mời vào nhóm
+    socket.on("channel/member/invite", async ({ userIds }) => { });
+    // Join nhóm
+    socket.on("channel/member/join", async ({  }) => { });
+    // Rời nhóm
+    socket.on("channel/member/leave", async ({  }) => { });
+    // Rời nhóm
+    socket.on("channel/member/kick-out", async ({  }) => { });
+
+    /* CHANNEL HOST */
+    socket.on("channel/host/change", async ({ newHostId, channelId }) => { });
 });
 
 httpServer.listen(config.server.PORT, () => {

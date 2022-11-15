@@ -55,7 +55,7 @@ export const BASE_SQL_USERS = `
 `;
 
 export const BASE_SQL_FRIENDS = `
-    select "userId1", sender."fullName" as "senderFullName", "userId2", receiver."fullName" as "receiverFullName", ceil(extract(epoch from friends."createdAt")) as "createdAt"
+    select "userId1", sender."fullName" as "senderFullName", "userId2", receiver."fullName" as "receiverFullName", ceil(extract(epoch from friends."createdAt"))::int as "createdAt"
     from friends
         join users sender on sender.id = "userId1"
         left join users receiver on receiver.id = "userId2"
@@ -68,8 +68,8 @@ export const BASE_SQL_ROOMS = `
         "typeId",
         "messageTotal",
         chatRoom.status,
-        ceil(extract(epoch from chatRoom."createdAt")) as "createdAt",
-        ceil(extract(epoch from chatRoom."updatedAt")) as "updatedAt",
+        ceil(extract(epoch from chatRoom."createdAt"))::int as "createdAt",
+        ceil(extract(epoch from chatRoom."updatedAt"))::int as "updatedAt",
         chatRoom."createdBy",
         chatRoom."updatedBy",
         chatRoomType.name as "typeName",

@@ -62,7 +62,7 @@ const getAll = async (args?: { channelTypeId?: number }) => {
            "channelTypeId",
            channelTypes.name                              as "channelTypeName",
            channels.status,
-           ceil(extract(epoch from channels."createdAt")) as "createdAt"
+           ceil(extract(epoch from channels."createdAt"))::int as "createdAt"
     from channels
              join channelTypes on channelTypes.id = channels."channelTypeId"
 ), channelMembersInfo as (
@@ -70,13 +70,13 @@ const getAll = async (args?: { channelTypeId?: number }) => {
         'id', users.id,
         'fullName', users."fullName",
         'email', users."email",
-        'phoneNumber"', users."phoneNumber",
-        'birthday"', users."birthday",
-        'gender"', users."gender",
-        'avatarUrl"', users."avatarUrl",
-        'status"', users."status",
-        'onlineStatus"', users."onlineStatus",
-        'lastOnlineTime"', users."lastOnlineTime"
+        'phoneNumber', users."phoneNumber",
+        'birthday', users."birthday",
+        'gender', users."gender",
+        'avatarUrl', users."avatarUrl",
+        'status', users."status",
+        'onlineStatus', users."onlineStatus",
+        'lastOnlineTime', users."lastOnlineTime"
         )) as members from channelMembers
                 join users on users.id = channelMembers."memberId"
                 join channelWithType c on c."id" = channelMembers."channelId" and channelMembers.status = 1
@@ -91,7 +91,6 @@ const getAll = async (args?: { channelTypeId?: number }) => {
 
     console.log(result.rows);
     return await (Promise.all(result.rows.map(async (channel: any) => {
-        console.log(channel.id);
         channel.lastMessage = (await client.execute(`select * from messagesByChannels where "channelId" = ? and status = 1 limit 1;`, [ channel.id ], {prepare: true})).rows[0] || null;
         return channel;
     })));
@@ -188,17 +187,18 @@ const getAllByUserId = async (args?: {id: number, channelTypeId?: number}) => {
            "channelTypeId" as "typeId",
            channelTypes.name                              as "typeName",
            channels.status,
-           ceil(extract(epoch from channels."createdAt")) as "createdAt"
+           ceil(extract(epoch from channels."createdAt"))::int as "createdAt"
     from channels
              join channelTypes on channelTypes.id = channels."channelTypeId"
              join channelMembers on channelMembers."channelId" = channels.id and channelMembers."memberId" = $1
+             where channels.status = 1
     ), channelMembersInfo as (
     select c.*, jsonb_agg(json_build_object(
         'id', users.id,
         'fullName', users."fullName",
         'email', users."email",
         'phoneNumber', users."phoneNumber",
-        'birthday', users."birthday",
+        'birthday', ceil(extract(epoch from users."birthday"))::int,
         'gender', users."gender",
         'avatarUrl', users."avatarUrl",
         'status', users."status",
@@ -219,7 +219,7 @@ const getAllByUserId = async (args?: {id: number, channelTypeId?: number}) => {
     `;
     if (channelTypeId) {
         params.push(channelTypeId);
-        sql += ` where channels."typeId" = $${params.length}`;
+        sql += ` where channelMembersInfo."typeId" = $${params.length}`;
     }
     const result = await db.query(sql, params);
 
@@ -269,7 +269,7 @@ module.exports = {
     getByChannelId: async (id: string) => {
         const sql = `
             select channels.id, "channelTypeId", channelTypes.name as "channelTypeName", channels.status,
-                   ceil(extract(epoch from channels."createdAt")) as "createdAt"
+                   ceil(extract(epoch from channels."createdAt"))::int as "createdAt"
             from channels join channelTypes on channelTypes.id = channels."channelTypeId" where channels.id = $1
         `;
         const result = await db.query(sql, [id]);
@@ -282,13 +282,13 @@ module.exports = {
                users."registerTypeId",
                users.email,
                users."avatarUrl",
-               users."birthday",
+               ceil(extract(epoch from users."birthday"))::int as "birthday",
                users."gender",
                users."phoneNumber",
                users."status",
                users."onlineStatus",
                users."lastOnlineTime",
-               ceil(extract(epoch from "joinAt")) as "joinAt"
+               ceil(extract(epoch from "joinAt"))::int as "joinAt"
            from channelmembers
                join users on users.id = channelmembers."memberId" where channelMembers.status = 1 and "channelId" = $1;`;
            channel.members = (await db.query(membersSql, [channel.id])).rows;
@@ -311,7 +311,7 @@ module.exports = {
                users."status",
                users."onlineStatus",
                users."lastOnlineTime",
-               ceil(extract(epoch from "joinAt")) as "joinAt"
+               ceil(extract(epoch from "joinAt"))::int as "joinAt"
            from channelmembers
                join users on users.id = channelmembers."memberId" where channelMembers.status = 1 and "channelId" = $1;`;
 
