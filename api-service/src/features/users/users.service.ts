@@ -3,6 +3,7 @@ import {ICondition, IUser, IUserQueryParams} from "../../common/interface";
 export {}
 const db = require("../../repository");
 const debug = require("../../common/debugger");
+const Helpers = require("../../common/helpers");
 const { commonService } = require("../common");
 
 // onlineStatus: 1 online, 2 offline, 3 busy, 4 not border
@@ -30,8 +31,27 @@ module.exports = {
 
         return result.rows;
     },
-    updateUser: async ({id, fullName, birthday, gender, phoneNumber, avatarUrl}: any) => {
-        const sql = `update users set "fullName" = $2, birthday = to_timestamp($3), gender = $4, "phoneNumber" = $5, "avatarUrl" = $6 where id = $1
+    updateUser: async ({id, fullName, birthday, gender, phoneNumber}: any) => {
+        let columns = [];
+        const params = [id];
+        if (!Helpers.isNullOrEmpty(birthday)) {
+            params.push(birthday);
+            columns.push("birthday = to_timestamp($" + (params.length) + ")");
+        }
+        if (!Helpers.isNullOrEmpty(gender)) {
+            params.push(gender);
+            columns.push("gender = $" + params.length);
+        }
+        if (!Helpers.isNullOrEmpty(phoneNumber)) {
+            params.push(phoneNumber);
+            columns.push(`"phoneNumber" = $` + params.length);
+        }
+        if (!Helpers.isNullOrEmpty(fullName)) {
+            params.push(fullName);
+            columns.push(`"fullName" = $` + params.length);
+        }
+// "fullName" = $2, birthday = to_timestamp($3), gender = $4, "phoneNumber" = $5
+        const sql = `update users set ${columns.join(", ")} where id = $1
             returning    "id",
                          "fullName",
                          "registerTypeId",
@@ -47,7 +67,12 @@ module.exports = {
                          ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
                          "createdBy",
                          "updatedBy"`;
-        const params = [id, fullName, birthday, gender, phoneNumber, avatarUrl];
+        const result = await db.query(sql, params);
+        return result.rows[0];
+    },
+    updateUserAvatar: async ({id, avatarUrl}: any) => {
+        const sql = `update users set "avatarUrl" = $2 where id = $1`;
+        const params = [id, avatarUrl];
         const result = await db.query(sql, params);
         return result.rows[0];
     },
@@ -72,5 +97,12 @@ module.exports = {
         `;
         const result = await db.query(sql, [userId]);
         return result.rows[0];
+    },
+    getUserInformation: async (id: string) => {
+        const sql = `select 
+            ceil(extract(epoch from birthday::timestamp))::int as "birthday",
+            "fullName", "phoneNumber", "avatarUrl", email, gender 
+            from users where id = $1 and status = 1`;
+        return (await db.query(sql, [id])).rows[0];
     }
 };

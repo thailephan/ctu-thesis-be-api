@@ -231,9 +231,11 @@ const getAllByUserId = async (args?: {id: number, channelTypeId?: number}) => {
             if (channel.placeholderMembers[0].id === id) {
                 channel.channelAvatarUrl = channel.placeholderMembers[1].avatarUrl;
                 channel.channelName = channel.placeholderMembers[1].fullName;
+                channel.userId = channel.placeholderMembers[1].id;
             } else {
                 channel.channelAvatarUrl = channel.placeholderMembers[0].avatarUrl;
                 channel.channelName = channel.placeholderMembers[0].fullName;
+                channel.userId = channel.placeholderMembers[0].id;
             }
 
             // Group channel case
@@ -248,6 +250,7 @@ const getAllByUserId = async (args?: {id: number, channelTypeId?: number}) => {
                 channel.channelAvatarUrl = channelInfoResult.rows[0].channelAvatarUrl;
                 channel.channelName = channelInfoResult.rows[0].channelName;
                 channel.channelHostId = channelInfoResult.rows[0].channelHostId;
+                channel.userId = null;
                 channel.createdBy = channelInfoResult.rows[0].createdBy;
             } else {
                 channel.channelAvatarUrl = null;
@@ -324,4 +327,16 @@ module.exports = {
             id,
         })
     },
+    getAllMembersIdByChannelId: async (channelId: number, senderId: any) => {
+        const precheckUserinChannelSql =  ``;
+        const sql = `with "channelInfomation" as (
+            select * from channels where id = $1 and status = 1 limit 1
+        ), "membersId" as (
+          select json_agg("memberId") as "membersId" from channels join channelMembers cM on channels.id = cM."channelId" where channels.id = $1
+        ) select * from "channelInfomation", "membersId";`;
+
+        const result = await db.query(sql, [channelId]);
+        return result.rows[0];
+    }
+    //TODO: Get bulk of user's information by user's id
 };

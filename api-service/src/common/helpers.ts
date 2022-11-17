@@ -47,8 +47,7 @@ const Helpers = {
     },
     // JWT
     generateToken(payload: ITokenPayload) {
-        console.log(payload);
-        return jwt.sign(payload, config.token.access_token_secret);
+        return jwt.sign(payload, config.token.accessTokenSecret);
     },
     /**
      * Check value is string or non.
@@ -108,10 +107,6 @@ const Helpers = {
     },
     isPhoneNumber: (input: any) => {
        return String(input).toLowerCase().match(/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[\./0-9]*$/i);
-    },
-    isNumberId: (input: any) => {
-        const value = parseInt(input);
-        return !isNaN(value) && input > 0 && input <= int4.max;
     },
 }
 

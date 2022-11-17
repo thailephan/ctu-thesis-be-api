@@ -54,7 +54,7 @@ module.exports = {
                 message: "Không tìm thấy bearer token"
             });
 
-        jwt.verify(token, config.token.access_token_secret, (err: any, decoded: any) => {
+        jwt.verify(token, config.token.accessTokenSecret, (err: any, decoded: any) => {
             if (err) {
                 debug.middleware(err)
 

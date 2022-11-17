@@ -34,7 +34,7 @@ io.use((socket: OverrideSocket, next) => {
     if (Helpers.isNullOrEmpty(token)) {
         return next(new Error("Token bị rỗng"));
     }
-    jwt.verify(token, config.token.access_token_secret, async (err: any, decoded: any) => {
+    jwt.verify(token, config.token.accessTokenSecret, async (err: any, decoded: any) => {
         if (err) {
             debug.middleware(err)
             return next(new Error("access token không đúng"));

@@ -1,0 +1,8 @@
+version: "3.8"
+
+services:
+  app:
+    image: golang:1.19.0-alpine3.16
+    command: sh -c "apk add libvips libvips-dev && go run /app/main.go"
+    volumes:
+      - ./:/app

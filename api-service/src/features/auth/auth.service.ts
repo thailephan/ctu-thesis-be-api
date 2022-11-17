@@ -10,24 +10,33 @@ module.exports = {
         if (Helpers.isNullOrEmpty(email)) {
            return null;
         }
+        // Old select (all data)
+        // let sql = `select
+        //                "id",
+        //                "fullName",
+        //                "registerTypeId",
+        //                "email",
+        //                hash,
+        //                "tempHash",
+        //                ceil(extract(epoch from "birthday"::timestamp))::int as "birthday",
+        //                "gender",
+        //                "phoneNumber",
+        //                "avatarUrl",
+        //                "status",
+        //                "onlineStatus",
+        //                ceil(extract(epoch from "lastOnlineTime"::timestamp))::int as "lastOnlineTime",
+        //                ceil(extract(epoch from "createdAt"::timestamp))::int as "createdAt",
+        //                ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
+        //                "createdBy",
+        //                "updatedBy"
+        //     from users where email = $1 limit 1;`
+
+        // New (Just select email, registerTypeId, email) for less effect jwt when update user data
         let sql = `select
                        "id",
-                       "fullName",
-                       "registerTypeId",
                        "email",
-                       hash,
-                       "tempHash",
-                       ceil(extract(epoch from "birthday"::timestamp))::int as "birthday",
-                       "gender",
-                       "phoneNumber",
-                       "avatarUrl",
-                       "status",
-                       "onlineStatus",
-                       ceil(extract(epoch from "lastOnlineTime"::timestamp))::int as "lastOnlineTime",
-                       ceil(extract(epoch from "createdAt"::timestamp))::int as "createdAt",
-                       ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
-                       "createdBy",
-                       "updatedBy"
+                       "registerTypeId",
+                       "hash"
             from users where email = $1 limit 1;`
         const params = [email];
         const result = await db.query(sql, params);

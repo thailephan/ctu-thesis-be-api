@@ -140,7 +140,7 @@ module.exports = (app: Express) => {
 
         // Remove important fields
         delete account.hash;
-        delete account.tempHash;
+        delete account.registerTypeId;
 
         const payload: ITokenPayload = account;
 
@@ -173,7 +173,7 @@ module.exports = (app: Express) => {
 
         // Remove important fields
         delete account.hash;
-        delete account.tempHash;
+        delete account.registerTypeId;
 
         const payload: ITokenPayload = account;
 
