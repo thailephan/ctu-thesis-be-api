@@ -51,7 +51,7 @@ module.exports = {
             columns.push(`"fullName" = $` + params.length);
         }
 // "fullName" = $2, birthday = to_timestamp($3), gender = $4, "phoneNumber" = $5
-        const sql = `update users set ${columns.join(", ")} where id = $1
+        const sql = `update users set ${columns.join(", ")}, "createdAt" = now() where id = $1
             returning    "id",
                          "fullName",
                          "registerTypeId",
@@ -71,14 +71,14 @@ module.exports = {
         return result.rows[0];
     },
     updateUserAvatar: async ({id, avatarUrl}: any) => {
-        const sql = `update users set "avatarUrl" = $2 where id = $1`;
+        const sql = `update users set "avatarUrl" = $2 , "createdAt" = now() where id = $1`;
         const params = [id, avatarUrl];
         const result = await db.query(sql, params);
         return result.rows[0];
     },
     // TODO: user cannot login after lock account
     lockUser: async ({ userId }: any) => {
-        const sql = `update users set status = 2 where id = $1
+        const sql = `update users set status = 2, "createdAt" = now() where id = $1
                          returning "id",
                          "fullName",
                          "registerTypeId",
@@ -104,5 +104,14 @@ module.exports = {
             "fullName", "phoneNumber", "avatarUrl", email, gender 
             from users where id = $1 and status = 1`;
         return (await db.query(sql, [id])).rows[0];
+    },
+    getAccountById: async (id: string) => {
+        // TODO: add `status = 1` to check existed user
+        const sql = `select * from users where id = $1`;
+        return (await db.query(sql, [id])).rows[0];
+    },
+    updateUserPassword: async (id: any, hash: string) => {
+        const sql = `update users set hash = $1, "updatedAt" = now() where id = $2 returning *`;
+        return (await db.query(sql, [hash, id])).rows[0];
     }
 };

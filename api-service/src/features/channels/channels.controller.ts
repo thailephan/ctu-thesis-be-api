@@ -106,7 +106,7 @@ module.exports = (app: Express) => {
         }
     });
     // TODO: add restrict for only user in channel be able get data
-    app.get("/channels/getAllMembersId", middleware.verifyToken, async (req, res) => {
+    app.get("/channels/getAllMembersIdByChannelId", middleware.verifyToken, async (req, res) => {
         const { channelId } = req.body;
         // @ts-ignore
         const senderId = req.user.id;
@@ -121,6 +121,14 @@ module.exports = (app: Express) => {
 
         try {
             const channelsWithMembersId = await service.getAllMembersIdByChannelId(channelId, senderId);
+
+            if (Helpers.isNullOrEmpty(channelsWithMembersId)) {
+                return res.status(200).json({
+                    message: "Channel không tồn tại hoặc đã bị xóa",
+                    success: false,
+                    data: null,
+                });
+            }
 
             return res.status(200).json({
                 message: null,

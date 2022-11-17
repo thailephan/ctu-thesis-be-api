@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { Express } from "express";
 const service = require("./users.service");
 const debug = require("../../common/debugger");
@@ -48,7 +49,7 @@ module.exports = (app: Express, firebase: any) => {
             });
         }
     });
-    app.post("/users/update-avatar", middleware.verifyToken, async (req, res) => {
+    app.post("/users/updateAvatar", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const user = req.user;
         const { avatarUrl } = req.body;
@@ -71,7 +72,7 @@ module.exports = (app: Express, firebase: any) => {
             });
         }
     });
-    app.post("/users/lock-account", middleware.verifyToken, async (req, res) => {
+    app.post("/users/lockAccount", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const user = req.user;
 
@@ -95,7 +96,7 @@ module.exports = (app: Express, firebase: any) => {
     });
     // TODO: Unlock user account
 
-    app.get("/users/user-information", middleware.verifyToken, async (req, res) => {
+    app.get("/users/userInformation", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const { id = "" } =  req.user;
         if (Helpers.isNullOrEmpty(id)) {
@@ -141,5 +142,92 @@ module.exports = (app: Express, firebase: any) => {
                 message: e.message,
             })
         }
-    })
+    });
+    app.post("/users/changePassword", middleware.verifyToken, async (req, res) => {
+        const { oldPassword, password, confirmPassword } = req.body;
+        if (Helpers.isNullOrEmpty(oldPassword)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: "Mật khẩu cũ không được rỗng",
+            })
+        }
+        if (Helpers.isNullOrEmpty(password)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: "Mật khẩu mới không được rỗng",
+            })
+        }
+        if (Helpers.isNullOrEmpty(confirmPassword)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: "Xác nhận mật khẩu mới không được rỗng",
+            });
+        }
+        if (confirmPassword !== password) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: "Xác nhận mật khẩu mới và mật khẩu không trùng khớp",
+            });
+        }
+
+        try {
+            // @ts-ignore
+            const id = req.user.id;
+            const account = await service.getAccountById(id);
+            if (Helpers.isNullOrEmpty(account)) {
+                return res.status(200).json({
+                    success: false,
+                    data: null,
+                    statusCode: 400,
+                    message: "Tài khoản không tồn tại",
+                });
+            }
+
+            // check password
+            const match = await bcrypt.compare(oldPassword, account.hash);
+
+            if (!match) {
+                return res.status(200).json({
+                    success: false,
+                    data: null,
+                    statusCode: 400,
+                    message: "Mật khẩu cũ không đúng",
+                });
+            }
+
+            const hash = await Helpers.hash(password);
+
+            const user = await service.updateUserPassword(id, hash);
+            if (Helpers.isNullOrEmpty(user)) {
+                return res.status(200).json({
+                    success: false,
+                    statusCode: 400,
+                    data: user,
+                    message: null,
+                })
+            }
+
+            return res.status(200).json({
+                success: true,
+                statusCode: 200,
+                data: null,
+                message: null,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: e.message,
+            })
+        }
+    });
 };
