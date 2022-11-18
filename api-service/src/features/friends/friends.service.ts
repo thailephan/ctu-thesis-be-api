@@ -9,26 +9,30 @@ module.exports = {
     ...commonService,
     async getAllByUserId(id: string) {
         const sql = `
-            select ceil(extract(epoch from friends."createdAt"))::int as "friendSince",
-                   case when "userId1" = $1 then user2."fullName"
-                        when "userId2" = $1 then user1."fullName"
-                   end as "fullName",
-                   case
-                       when "userId1" = $1 then user2."avatarUrl"
-                       when "userId2" = $1 then user1."avatarUrl"
-                   end as "avatarUrl",
+            with f as (select ceil(extract(epoch from friends."createdAt"))::int as "friendSince",
                    case
                    when "userId1" = $1 then user2.id
                        when "userId2" = $1 then user1.id
                    end as "friendId",
-                   case
-                       when "userId1" = $1 then user2.email
-                       when "userId2" = $1 then user1.email
-                   end as email
-            from friends
-                join users user1
-            on user1.id = friends."userId1"
-                join users user2 on user2.id = friends."userId2" where friends.status = 1 and ("userId1" = $1 or "userId2" = $1);
+       case
+           when "userId1" = $1 then user1.id
+           when "userId2" = $1 then user2.id
+           end as "requestUserId",
+       case
+           when "userId1" = $1 then user2.email
+           when "userId2" = $1 then user1.email
+           end as email
+from friends
+         join users user1
+              on user1.id = friends."userId1"
+         join users user2 on user2.id = friends."userId2"
+where friends.status = 1
+  and ("userId1" = $1 or "userId2" = $1) )
+            select f.*, cm1."channelId" from f
+                join channelMembers cm1 on cm1."memberId" = "requestUserId"
+                join channelMembers cm2 on cm2."memberId" = "friendId" and cm2."channelId" = cm1."channelId"
+                join channels c on cm2."channelId" = c.id
+            where c."channelTypeId" = 1;
         `;
         const params = [id]
         const result = await db.query(sql, params);

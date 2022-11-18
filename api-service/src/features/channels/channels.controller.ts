@@ -86,6 +86,26 @@ module.exports = (app: Express) => {
             });
         }
     });
+    // TODO: Add to postman
+    app.get("/channels/getAllGroupChannels", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const userId = req.user.id;
+        try {
+            const channels = await service.getAllGroupChannels(userId);
+
+            return res.status(200).json({
+                message: null,
+                success: true,
+                data: channels,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                success: false,
+                data: null,
+            });
+        }
+    });
     app.get("/channels/getAllFriendChannels", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const userId = req.user.id;

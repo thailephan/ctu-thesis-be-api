@@ -45,7 +45,6 @@ module.exports = {
     async createAccount(account: IAccount) {
         const {fullName, email, hash, registerTypeId} = account;
         const params = [fullName, email, hash, registerTypeId];
-
         let sql = 'insert into users("fullName", "email", "hash", "registerTypeId") values($1, $2, $3, $4)';
         const result = await db.query(sql, params);
         console.log(result);

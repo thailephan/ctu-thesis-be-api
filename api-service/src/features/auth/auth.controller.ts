@@ -71,6 +71,16 @@ module.exports = (app: Express) => {
                 message: "Mật khẩu không được dể trống",
             });
         }
+        const account = await service.getAccountByEmail(email);
+        if (!Helpers.isNullOrEmpty(account)) {
+            return res.status(200).json({
+                statusCode: 400,
+                success: false,
+                data: null,
+                message: "Email đã được đăng ký.",
+            });
+        }
+
         const hash = await Helpers.hash(password);
         const default_account: any = {
             fullName,

@@ -325,7 +325,13 @@ module.exports = {
         return await getAllByUserId({
             channelTypeId: 1,
             id,
-        })
+        });
+    },
+    getAllGroupChannels: async (id: number) => {
+        return await getAllByUserId({
+            channelTypeId: 1,
+            id,
+        });
     },
     getAllMembersIdByChannelId: async (channelId: number, senderId: any) => {
         const precheckUserinChannelSql =  ``;
