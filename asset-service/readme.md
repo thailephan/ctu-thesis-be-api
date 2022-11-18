@@ -20,3 +20,4 @@
 
 ## JWT token
 - Learn jwt token: https://github.com/dwyl/learn-json-web-tokens#3-signature
+- API access token: https://support.box.com/hc/en-us/community/posts/360049149074-Getting-API-access-tokens-with-Golang

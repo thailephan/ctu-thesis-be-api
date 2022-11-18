@@ -118,9 +118,9 @@ func UserAvatarUpload(c *gin.Context) {
 
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
-				"success": true,
-				"message": nil,
-				"data":    "/" + fileAccessUrl,
+				"success": false,
+				"message": err.Error(),
+				"data":    fileAccessUrl,
 			})
 			return
 		}
@@ -135,7 +135,7 @@ func UserAvatarUpload(c *gin.Context) {
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
-			"data":    fileAccessUrl,
+			"data":    "/" + fileAccessUrl,
 			"message": nil,
 		})
 	}

@@ -31,12 +31,13 @@ const channelTyping = new Map<string, Set<number>>();
 
 io.use((socket: OverrideSocket, next) => {
     const token = socket.handshake.auth.accessToken || socket.handshake.headers["access-token"];
+    console.log("Has connect");
     if (Helpers.isNullOrEmpty(token)) {
         return next(new Error("Token bị rỗng"));
     }
     jwt.verify(token, config.token.accessTokenSecret, async (err: any, decoded: any) => {
         if (err) {
-            debug.middleware(err)
+            debug.middleware(err);
             return next(new Error("access token không đúng"));
         } else {
             const instance = axios.create({
@@ -50,14 +51,18 @@ io.use((socket: OverrideSocket, next) => {
             socket.currentUser = decoded;
             socket.accessToken = token;
             // TODO: Load channels of connected user
-            const result = await instance.get("/channels/getAll");
-            if (result.data.success) {
-                // TODO: Join users to channels
-                const roomIds = result.data.data.map(r => `${r.id}`);
-                console.log(roomIds);
-                socket.join([...roomIds, "users/" + decoded.id]);
-            } else {
-                socket.emit("error", "Unable to load instance");
+            try {
+                const result = await instance.get("/channels/getAll");
+                if (result.data.success) {
+                    // TODO: Join users to channels
+                    const roomIds = result.data.data.map(r => `${r.id}`);
+                    console.log(roomIds);
+                    socket.join([...roomIds, "users/" + decoded.id]);
+                } else {
+                    socket.emit("error", "Unable to load instance");
+                }
+            } catch (e) {
+                socket.emit("error", e.message);
             }
             next();
         }
@@ -76,7 +81,11 @@ io.on("connection", async (socket: OverrideSocket) => {
             authorization: `Bearer ${socket.accessToken}`
         }
     });
-
+    /* PING connect */
+    socket.on("ping", () => {
+        console.log("client ping");
+        socket.emit("pong");
+    });
     // socket.emit("chat/channel/sync", {channels: channels});
     /* Common event */
     // When disconnect
@@ -100,6 +109,14 @@ io.on("connection", async (socket: OverrideSocket) => {
     //     const rooms = [];
     //     socket.emit("chat/rooms/getAll", rooms);
     // });
+    socket.on("user/updateAvatar", async ({ avatarUrl }) => {
+        const user = socket.currentUser;
+        socket.broadcast.to(`users/${user.id}`).emit("user/updateAvatar", { avatarUrl });
+    })
+    socket.on("user/updateInformation", async (data) => {
+        const user = socket.currentUser;
+        socket.broadcast.to(`users/${user.id}`).emit("user/updateInformation", data);
+    })
 
     /* CHAT */
     // Gửi tin nhắn vào nhóm với channenId
