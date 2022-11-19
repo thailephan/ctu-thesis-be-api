@@ -27,8 +27,6 @@ const io = new Server(httpServer, {
     }
 });
 
-const channelTyping = new Map<string, Set<number>>();
-
 io.use((socket: OverrideSocket, next) => {
     const token = socket.handshake.auth.accessToken || socket.handshake.headers["access-token"];
     console.log("Has connect");
@@ -88,9 +86,26 @@ io.on("connection", async (socket: OverrideSocket) => {
     });
     // socket.emit("chat/channel/sync", {channels: channels});
     /* Common event */
-    // When disconnect
-    socket.on('disconnect', function (reason) {
+
+    socket.on('disconnect', async function (reason) {
         console.log('socket disconnect...', socket.id, reason)
+    })
+    // When disconnect
+    socket.on('disconnecting', async function (reason) {
+        console.log('socket disconnecting...', socket.id, reason)
+        const result = await axios.post("http://localhost:4001/channels/untypingByUser", null, {
+            headers: {
+                authorization: `Bearer ${socket.accessToken}`
+            }
+        });
+        if (result.data.success) {
+            const channelId = result.data.data.channelId;
+            io.to(`${channelId}`).emit("chat/untyping", {
+                typingUsersId: result.data.data.typingList,
+                senderId: socket.currentUser.id,
+                channelId: channelId,
+            });
+        }
         // TODO: Call API to update user status when they offline
         // TODO: Emit status update to other users when this user is offline
         // handleDisconnect()
@@ -189,29 +204,44 @@ io.on("connection", async (socket: OverrideSocket) => {
     });
 
     /* TYPING */
-    socket.on("chat/typing", ({channelId}) => {
-        const ok = channelTyping.get(`${channelId}`).add(socket.currentUser.id);
-        if (ok) {
-            io.to(`${channelId}`).emit("chat/typing", {
-                typingIds: channelTyping.get(`${channelId}`).values(),
-                senderId: socket.currentUser.id,
-            });
-        } else {
+    socket.on("chat/typing", async ({channelId}) => {
+        try {
+            const result = await axios.get(`http://localhost:4001/channels/${channelId}/typing`, {
+                headers: {
+                    authorization: `Bearer ${socket.accessToken}`
+                }
+            })
+            console.log(result.data);
+            if (result.data.success) {
+                io.to(`${channelId}`).emit("chat/typing", {
+                    typingUsersId: result.data.data.typingList,
+                    senderId: socket.currentUser.id,
+                    channelId,
+                });
+            }
+        } catch (e) {
             socket.emit("chat/typing/error", {
                 message: "không biết lỗi gì",
                 senderId: socket.currentUser.id,
             });
         }
     });
-    socket.on("chat/untyping", ({channelId}) => {
-        const ok = channelTyping.get(`${channelId}`).delete(socket.currentUser.id);
-        if (ok) {
-            io.to(`${channelId}`).emit("chat/untyping", {
-                typingIds: channelTyping.get(`${channelId}`).values(),
-                senderId: socket.currentUser.id,
-            });
-        } else {
-            socket.emit("chat/untyping/error", {
+    socket.on("chat/untyping", async ({channelId}) => {
+        try {
+            const result = await axios.get(`http://localhost:4001/channels/${channelId}/untyping`, {
+                headers: {
+                    authorization: `Bearer ${socket.accessToken}`
+                }
+            })
+            if (result.data.success) {
+                io.to(`${channelId}`).emit("chat/untyping", {
+                    typingUsersId: result.data.data.typingList,
+                    senderId: socket.currentUser.id,
+                    channelId,
+                });
+            }
+        } catch (e) {
+            socket.emit("chat/typing/error", {
                 message: "không biết lỗi gì",
                 senderId: socket.currentUser.id,
             });

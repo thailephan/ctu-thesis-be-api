@@ -99,7 +99,7 @@ module.exports = {
         return result.rows[0];
     },
     getUserInformation: async (id: string) => {
-        const sql = `select 
+        const sql = `select id,
             ceil(extract(epoch from birthday::timestamp))::int as "birthday",
             "fullName", "phoneNumber", "avatarUrl", email, gender 
             from users where id = $1 and status = 1`;

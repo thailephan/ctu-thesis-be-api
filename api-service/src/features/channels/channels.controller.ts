@@ -190,4 +190,130 @@ module.exports = (app: Express) => {
         } catch (e) {
         }
     });
+
+    /* TYPING */
+    app.get("/channels/:channelId/typing/getAll", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const typingId = req.user.id;
+        const { channelId } = req.params;
+        if (Helpers.isNullOrEmpty(channelId)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                message: "Không tìm thấy channel id",
+                data: null,
+            })
+        }
+
+        try {
+            const typingList = await service.getTypingListByChannelId({channelId});
+
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                message: null,
+                data: typingList,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                message: e.message,
+                data: null,
+            })
+        }
+    });
+    app.get("/channels/:channelId/typing", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const typingId = req.user.id;
+        const {channelId} = req.params;
+        if (Helpers.isNullOrEmpty(channelId)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                message: "Không tìm thấy channel id",
+                data: null,
+            })
+        }
+
+        try {
+            const typingList = await service.addUserToTypingList({channelId, typingId});
+
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                message: null,
+                data: typingList,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                message: e.message,
+                data: null,
+            })
+        }
+    });
+    app.get("/channels/:channelId/untyping", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const typingId = req.user.id;
+        const {channelId} = req.params;
+        if (Helpers.isNullOrEmpty(channelId)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                message: "Không tìm thấy channel id",
+                data: null,
+            })
+        }
+
+        try {
+            const typingList = await service.removeUserToTypingList({channelId, typingId});
+
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                message: null,
+                data: typingList,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                message: e.message,
+                data: null,
+            })
+        }
+    });
+    // update typing when user disconnect
+    app.post("/channels/untypingByUser", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const id = req.user.id;
+
+        try {
+            const typingList = await service.unTyping({typingId: id});
+
+            if (typingList.channelId === -1) {
+                return res.status(200).json({
+                    statusCode: 200,
+                    success: false,
+                    message: "User không cần untyping",
+                    data: null,
+                })
+            }
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                message: null,
+                data: typingList,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                message: e.message,
+                data: null,
+            })
+        }
+    })
 };

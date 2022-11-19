@@ -155,4 +155,31 @@ module.exports = {
 
         return null;
     },
+    getAllSentByUserId: async ({id}) => {
+        const sql = `select "receiverId",
+                            "fullName",
+                            "avatarUrl",
+                            email,
+                            ceil(extract(epoch from invitations."createdAt"))::int as "createdAt"
+                     from invitations join users
+                     on invitations."senderId" = users.id
+                     where "senderId" = $1`;
+        const params = [id];
+        console.log(id);
+        const result = await db.query(sql, params);
+        return result.rows;
+    },
+    getAllReceivedByUserId: async ({id}) => {
+        const sql = `select "senderId",
+                            "fullName",
+                            "avatarUrl",
+                            email,
+                            ceil(extract(epoch from invitations."createdAt"))::int as "createdAt"
+                     from invitations join users
+                     on invitations."receiverId" = users.id
+                     where "receiverId" = $1`;
+        const params = [id];
+        const result = await db.query(sql, params);
+        return result.rows;
+    }
 };

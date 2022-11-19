@@ -2,6 +2,7 @@ export {}
 const db = require("../../repository");
 const client = require("../../repository/cassandra");
 const debug = require("../../common/debugger");
+const Helpers = require("../../common/helpers");
 
 // GetAll v1
 // const getAll = async (args?: { channelTypeId?: number }) => {
@@ -267,8 +268,35 @@ const getAllByUserId = async (args?: {id: number, channelTypeId?: number}) => {
         return channel;
     })));
 }
+const removeUserToTypingList = async ({channelId, typingId}) => {
+    const getSql = `select *
+                        from typing
+                        where "channelId" = ?`;
+    const oldTypingResult = await client.execute(getSql, [channelId], {prepare: true});
+    // Not created case so may be null
+    const typing = oldTypingResult.rows[0] || {};
+    const typingSet = new Set(JSON.parse(typing.typingUsersId || "[]"));
+    typingSet.delete(typingId);
+    const typingList = Array.from(typingSet);
+
+    const queries = [{
+        query: `update typing set "typingUsersId" = ? where "channelId" = ?;`,
+        params: [JSON.stringify(typingList), channelId],
+    }, {
+        query: `delete from userTypingChannel where "userId" = ?;`,
+        params: [typingId]
+    }];
+    await client.batch(queries, {prepare: true});
+
+    return {
+        typingList,
+        channelId,
+    };
+};
+
 module.exports = {
     getAll,
+    removeUserToTypingList,
     getByChannelId: async (id: string) => {
         const sql = `
             select channels.id, "channelTypeId", channelTypes.name as "channelTypeName", channels.status,
@@ -329,7 +357,7 @@ module.exports = {
     },
     getAllGroupChannels: async (id: number) => {
         return await getAllByUserId({
-            channelTypeId: 1,
+            channelTypeId: 2,
             id,
         });
     },
@@ -343,6 +371,61 @@ module.exports = {
 
         const result = await db.query(sql, [channelId]);
         return result.rows[0];
+    },
+    addUserToTypingList: async ({channelId, typingId}) => {
+        const getSql = `select *
+                        from typing
+                        where "channelId" = ?`;
+        const oldTypingResult = await client.execute(getSql, [channelId], {prepare: true});
+        // Not created case so may be null
+        const typing = oldTypingResult.rows[0] || {};
+        const typingSet = new Set(JSON.parse(typing.typingUsersId || "[]"));
+        typingSet.add(typingId);
+        const typingList = Array.from(typingSet);
+
+        const queries = [{
+            query: `update typing set "typingUsersId"=? where "channelId" = ?;`,
+            params: [JSON.stringify(typingList), channelId],
+        }, {
+            query: `update userTypingChannel set "channelId" = ? where "userId" = ? ;`,
+            params: [channelId, typingId]
+        }];
+        await client.batch(queries, {prepare: true});
+
+        return {
+            typingList,
+            channelId,
+        };
+    },
+    getTypingListByChannelId: async ({ channelId }) => {
+        const sql = `select * from typing where "channelId" = ?`;
+       const result = await client.execute(sql, [channelId], { prepare: true });
+       if (Helpers.isNullOrEmpty(result.rows[0])) {
+            return {
+                channelId,
+                typingUsersId: [],
+            }
+       }
+       return {
+           channelId,
+           typingUsersId: JSON.parse(result.rows[0].typingUsersId),
+       };
+    },
+    unTyping: async ({typingId}) => {
+        // Get channel that user is typing
+        const getSql = `select * from userTypingChannel where "userId" = ?`;
+        const params = [typingId];
+        const getSqlResult = await client.execute(getSql, params, { prepare: true });
+        const row = getSqlResult.rows[0];
+        console.log(row);
+        if (!row) {
+            return {
+                channelId: -1,
+                typingUsersId: [],
+            };
+        }
+
+        return removeUserToTypingList({ channelId: row.channelId, typingId })
     }
     //TODO: Get bulk of user's information by user's id
 };

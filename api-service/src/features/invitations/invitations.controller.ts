@@ -14,10 +14,47 @@ module.exports = (app: Express) => {
     app.get("/invitations/getAll", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const id = req.user.id;
-        debug.api("invitations/getAll", id);
 
         try {
             const invitations = await service.getAllByUserId(id);
+            return res.status(200).json({
+                message: null,
+                data: invitations,
+                success: true,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                data: null,
+                success: false,
+            });
+        }
+    });
+    app.get("/invitations/getAllSent", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const id = req.user.id;
+
+        try {
+            const invitations = await service.getAllSentByUserId({ id });
+            return res.status(200).json({
+                message: null,
+                data: invitations,
+                success: true,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                data: null,
+                success: false,
+            });
+        }
+    });
+    app.get("/invitations/getAllReceived", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const id = req.user.id;
+
+        try {
+            const invitations = await service.getAllReceivedByUserId({ id });
             return res.status(200).json({
                 message: null,
                 data: invitations,
