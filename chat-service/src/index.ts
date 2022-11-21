@@ -93,18 +93,22 @@ io.on("connection", async (socket: OverrideSocket) => {
     // When disconnect
     socket.on('disconnecting', async function (reason) {
         console.log('socket disconnecting...', socket.id, reason)
-        const result = await axios.post("http://localhost:4001/channels/untypingByUser", null, {
-            headers: {
-                authorization: `Bearer ${socket.accessToken}`
-            }
-        });
-        if (result.data.success) {
-            const channelId = result.data.data.channelId;
-            io.to(`${channelId}`).emit("chat/untyping", {
-                typingUsersId: result.data.data.typingList,
-                senderId: socket.currentUser.id,
-                channelId: channelId,
+        try {
+            const result = await axios.post("http://localhost:4001/channels/untypingByUser", null, {
+                headers: {
+                    authorization: `Bearer ${socket.accessToken}`
+                }
             });
+            if (result.data.success) {
+                const channelId = result.data.data.channelId;
+                io.to(`${channelId}`).emit("chat/untyping", {
+                    typingUsersId: result.data.data.typingList,
+                    senderId: socket.currentUser.id,
+                    channelId: channelId,
+                });
+            }
+        } catch (e) {
+            console.log(e);
         }
         // TODO: Call API to update user status when they offline
         // TODO: Emit status update to other users when this user is offline
@@ -156,7 +160,7 @@ io.on("connection", async (socket: OverrideSocket) => {
             if (result.data.success) {
                 io.to(`${channelId}`).emit("chat/message/send", {
                     channelId,
-                    senderId: socket.currentUser.id,
+                    emitterId: socket.currentUser.id,
                     senderFullName: socket.currentUser.fullName,
                     senderAvatarUrl: socket.currentUser.avatarUrl,
                     message: {
@@ -175,7 +179,7 @@ io.on("connection", async (socket: OverrideSocket) => {
         io.to(`${channelId}`).emit("chat/message/received", {
             messageId,
             channelId,
-            senderId: socket.currentUser.id,
+            emitterId: socket.currentUser.id,
         });
     });
     socket.on("chat/message/seen", async ({messageId, channelId}) => {
@@ -185,7 +189,7 @@ io.on("connection", async (socket: OverrideSocket) => {
         io.to(`${channelId}`).emit("chat/message/seen", {
             messageId,
             channelId,
-            senderId: socket.currentUser.id,
+            emitterId: socket.currentUser.id,
         });
     });
     socket.on("chat/message/remove", async ({ messageId, channelId }) => {
@@ -196,7 +200,7 @@ io.on("connection", async (socket: OverrideSocket) => {
         if (result.data.success) {
             io.to(channelId.toString()).emit("chat/message/remove", {
                 messageId, channelId,
-                senderId: socket.currentUser.id,
+                emitterId: socket.currentUser.id,
             })
         } else {
             socket.emit("chat/mesasge/remove/error", result.data.message);
@@ -215,14 +219,14 @@ io.on("connection", async (socket: OverrideSocket) => {
             if (result.data.success) {
                 io.to(`${channelId}`).emit("chat/typing", {
                     typingUsersId: result.data.data.typingList,
-                    senderId: socket.currentUser.id,
+                    emitterId: socket.currentUser.id,
                     channelId,
                 });
             }
         } catch (e) {
             socket.emit("chat/typing/error", {
                 message: "không biết lỗi gì",
-                senderId: socket.currentUser.id,
+                emitterId: socket.currentUser.id,
             });
         }
     });
@@ -236,14 +240,14 @@ io.on("connection", async (socket: OverrideSocket) => {
             if (result.data.success) {
                 io.to(`${channelId}`).emit("chat/untyping", {
                     typingUsersId: result.data.data.typingList,
-                    senderId: socket.currentUser.id,
+                    emitterId: socket.currentUser.id,
                     channelId,
                 });
             }
         } catch (e) {
             socket.emit("chat/typing/error", {
                 message: "không biết lỗi gì",
-                senderId: socket.currentUser.id,
+                emitterId: socket.currentUser.id,
             });
         }
     });
@@ -262,13 +266,26 @@ io.on("connection", async (socket: OverrideSocket) => {
         });
 
         if (result.data.success) {
-            io.to("users/" + receiverId).emit("invitation/send", { senderId: user.id, receiverId: receiverId });
-            socket.emit("invitation/send", { senderId: user.id, receiverId: receiverId })
+            io.to("users/" + receiverId).emit("invitation/send", { emitterId: user.id, receiverId: receiverId });
+            socket.emit("invitation/send", { emitterId: user.id, receiverId: receiverId })
         } else {
             socket.emit("invitation/send/error", result.data.message);
         }
     });
-    // For both sender cancel and receiver reject
+    socket.on("invitation/reject", async ({ senderId }) => {
+        const user = socket.currentUser;
+
+        const result = await instance.post("/invitations/delete", {
+            id: senderId,
+        });
+
+        if (result.data.success) {
+            io.to("users/" + senderId).emit("invitation/reject", { emitterId: user.id, senderId });
+            socket.emit("invitation/reject", { emitterId: user.id, senderId });
+        } else {
+            socket.emit("invitation/reject/error", result.data.message);
+        }
+    });
     socket.on("invitation/cancel", async ({ receiverId }) => {
         const user = socket.currentUser;
 
@@ -278,23 +295,23 @@ io.on("connection", async (socket: OverrideSocket) => {
 
         if (result.data.success) {
             io.to("users/" + receiverId).emit("invitation/cancel", { senderId: user.id, receiverId: receiverId });
-            socket.emit("invitation/cancel", { senderId: user.id, receiverId: receiverId });
+            socket.emit("invitation/cancel", { emitterId: user.id, receiverId: receiverId });
         } else {
             socket.emit("invitation/cancel/error", result.data.message);
         }
     });
-    socket.on("invitation/accept", async ({ senderId, receiverId }) => {
+    socket.on("invitation/accept", async ({ senderId }) => {
         const user = socket.currentUser;
 
         const result = await instance.post("/invitations/accept", {
-            id: receiverId,
+            id: senderId,
         });
 
         if (result.data.success) {
-            io.to("users/" + receiverId).emit("invitation/accept", { senderId: user.id, receiverId: receiverId });
-            socket.emit("invitation/accept", { senderId: user.id, receiverId: receiverId })
+            io.to("users/" + senderId).emit("invitation/accept", { emitterId: user.id, senderId });
+            socket.emit("invitation/accept", { emitterId: user.id, senderId })
             console.log("Join A", socket.rooms);
-            io.in([user.id, receiverId].map(id => "users/" + id)).socketsJoin(result.data.data.id.toString());
+            io.in([user.id, senderId].map(id => "users/" + id)).socketsJoin(result.data.data.id.toString());
             console.log("Join B", socket.rooms);
         } else {
             socket.emit("invitation/accept/error", result.data.message);

@@ -6,51 +6,18 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/thailephan/lv/asset-service/routes"
+	"log"
 	"time"
 )
 
 func main() {
+	err := godotenv.Load(".env.local.development")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	router := gin.Default()
-	//srcImage, err := imaging.Open("dao.jpg")
-	//if err != nil {
-	//	log.Fatalf("failed to open image: %v", err)
-	//}
-	//dstImageFill := imaging.Fill(srcImage, 256, 256, imaging.Center, imaging.Linear)
-	//
-	//err = imaging.Save(dstImageFill, "dao-fill.jpg")
-	//if err != nil {
-	//	log.Fatalf("failed to save image: %v", err)
-	//}
-
-	// Crop the original image to 300x300px size using the center anchor.
-
-	//baseSize := int(math.Min(float64(srcImage.Bounds().Size().X), float64(srcImage.Bounds().Size().Y)))
-	//srcImage = imaging.CropAnchor(srcImage, baseSize, baseSize, imaging.Center)
-	//srcImage = imaging.Fit(srcImage, 256, 256, imaging.Lanczos)
-	//
-	//err = imaging.Save(srcImage, "dao-crop-fit.jpg")
-	//if err != nil {
-	//	log.Fatalf("failed to save image: %v", err)
-	//}
-
-	//buffer, err := bimg.Read("dao.jpg")
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//}
-	//
-	//newImage, err := bimg.NewImage(buffer).Resize(80, 200)
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//}
-	//
-	//size, err := bimg.NewImage(newImage).Size()
-	//if size.Width == 800 && size.Height == 600 {
-	//	fmt.Println("The image size is valid")
-	//}
-	//
-	//bimg.Write("new.jpg", newImage)
-
 	// Set a lower memory limit for multipart forms (default is 32 MiB)
 	//router.MaxMultipartMemory = 8 << 20 // 8 MiB
 	router.Static("/", "./public")

@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/thailephan/lv/asset-service/pkg"
+	"io"
 	"log"
 	"math/rand"
 	"mime/multipart"
@@ -17,9 +19,62 @@ import (
 	"time"
 )
 
+type IResponse struct {
+	Success bool        `json:"success"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
 func UserAvatarUpload(c *gin.Context) {
-	// TODO: Call api for validate auth token
-	println("Key ", c.GetHeader("authorization"))
+	/* 1: Validate token */
+	var authKey = c.GetHeader("authorization")
+	if authKey == "" {
+		c.JSON(http.StatusUnauthorized, IResponse{
+			Success: false,
+			Message: "Không tìm thấy access token",
+			Data:    nil,
+		})
+		return
+	}
+	fmt.Println(os.Getenv("API_SERVICE_URL"))
+	req, err := http.NewRequest("POST", os.Getenv("API_SERVICE_URL")+"/auth/verifyToken", nil)
+	if err != nil {
+		fmt.Printf("client: could not create request: %s\n", err)
+		os.Exit(1)
+	}
+	// add authorization header to the req
+	req.Header.Add("Authorization", c.GetHeader("authorization"))
+	// Send req using http Client
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Error on response.\n[ERROR] -", err)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"data":    nil,
+			"message": "Not Auth with token",
+		})
+		return
+	}
+
+	var data IResponse
+	resBody, _ := io.ReadAll(resp.Body)
+	err = json.Unmarshal(resBody, &data)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"data":    nil,
+			"message": "Cannot parse json from api",
+		})
+		return
+	}
+	fmt.Println(data, req.Header)
+	if data.Success != true {
+		c.JSON(resp.StatusCode, data)
+		return
+	}
+	defer resp.Body.Close()
+
 	//var signinForm []byte
 	//signinForm, bindError := c.GetRawData()
 	//
@@ -37,6 +92,7 @@ func UserAvatarUpload(c *gin.Context) {
 	//	c.String(http.StatusBadRequest, "EMpty name")
 	//}
 
+	/* 2: Get file from request and usave*/
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.String(http.StatusBadRequest, "get form err: %s", err.Error())
@@ -46,7 +102,15 @@ func UserAvatarUpload(c *gin.Context) {
 	fmt.Printf("Uploaded File: %+v\n", file.Filename)
 	fmt.Printf("File Size: %+v\n", file.Size)
 	fmt.Printf("MIME Header: %+v\n", file.Header)
-
+	var fileExt = filepath.Ext(path.Base(file.Filename))[1:]
+	if fileExt != "jpg" && fileExt != "jpeg" && fileExt != "png" {
+		c.JSON(http.StatusBadRequest, IResponse{
+			Success: false,
+			Message: "Chỉ cho phép tải lên ảnh có đuôi 'jpg', 'jpeg', hoặc 'png'",
+			Data:    nil,
+		})
+		return
+	}
 	// Allow file ext is pptx, xlsx, docx, pdf, txt, png, jpeg, jpg, wav, mp3
 	//var allowFileExtension []string = [];
 	//fileExt := filepath.Ext(lowerCase)[1:]

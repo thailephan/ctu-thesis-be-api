@@ -6,10 +6,8 @@ import (
 )
 
 func SetupRoutes(router *gin.Engine) {
-	router.POST("/api/upload", controllers.MessageAttachmentUpload)
+	//router.POST("/api/upload", controllers.MessageAttachmentUpload)
 	router.POST("/api/messages/upload-attachments", controllers.MessageAttachmentUpload)
-
-	// TODO: Implement for these below api
-	router.POST("/api/channels/upload-avatar", controllers.ChannelAvatarUpload)
 	router.POST("/api/users/upload-avatar", controllers.UserAvatarUpload)
+	router.POST("/api/channels/upload-avatar", controllers.ChannelAvatarUpload)
 }

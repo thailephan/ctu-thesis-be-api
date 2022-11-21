@@ -6,6 +6,9 @@
 - Read file: https://stackoverflow.com/questions/45121457/how-to-get-file-posted-from-json-in-go-gin
 - git book: https://chenyitian.gitbooks.io/gin-web-framework/content/docs/12.html
 
+### Http
+- Make http request: https://www.digitalocean.com/community/tutorials/how-to-make-http-requests-in-go
+
 ## Image interaction
 - Crop, resize, ...ảnh: https://github.com/h2non/bimg
   - Dependence lib in system: https://www.libvips.org/install.html
