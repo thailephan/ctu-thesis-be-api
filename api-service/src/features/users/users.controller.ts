@@ -230,4 +230,16 @@ module.exports = (app: Express, firebase: any) => {
             })
         }
     });
+    app.get("/users/search", middleware.verifyToken, async (req, res) => {
+        const { searchText } = req.body;
+
+        // TODO: Handle empty error
+        const result = await service.searchUser({searchText});
+
+        return res.status(200).json({
+            success: true,
+            statusCode: 200,
+            data: result
+        });
+    })
 };

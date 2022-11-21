@@ -113,5 +113,12 @@ module.exports = {
     updateUserPassword: async (id: any, hash: string) => {
         const sql = `update users set hash = $1, "updatedAt" = now() where id = $2 returning *`;
         return (await db.query(sql, [hash, id])).rows[0];
+    },
+    searchUser: async ({searchText}) => {
+        const sql = `select lower("fullName") LIKE lower($1) "isFindInFullName",
+                     lower("email") LIKE lower($1) "isFindInEmail", "fullName", id, email, "avatarUrl", "phoneNumber"
+                     from users
+                     where lower(email) LIKE lower($1) or lower("fullName") LIKE lower($1) and status = 1;`
+        return (await db.query(sql, [`%${searchText}%`])).rows;
     }
 };
