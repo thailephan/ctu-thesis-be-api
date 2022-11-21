@@ -53,6 +53,14 @@ module.exports = (app: Express) => {
             const newMessage = await service.createMessage({ channelId, messageTypeId, message, replyForId, createdBy });
             await service.createUserReadForMesasge( { messageId: newMessage.id, channelId, createdBy: senderId });
 
+            if (newMessage) {
+                if (typeof newMessage.createdAt === "string") {
+                    newMessage.createdAt = parseInt(newMessage.createdAt);
+                } else if (typeof newMessage.createdAt === "object") {
+                    newMessage.createdAt = parseInt(newMessage.createdAt.low.toString());
+                }
+            }
+
             return res.status(200).json({
                 data: newMessage,
                 success: true,

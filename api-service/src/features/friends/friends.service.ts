@@ -21,7 +21,15 @@ module.exports = {
        case
            when "userId1" = $1 then user2.email
            when "userId2" = $1 then user1.email
-           end as email
+           end as email,
+       case
+           when "userId1" = $1 then user2."avatarUrl"
+           when "userId2" = $1 then user1."avatarUrl"
+           end as "avatarUrl",
+       case
+           when "userId1" = $1 then user2."fullName"
+           when "userId2" = $1 then user1."fullName"
+           end as "fullName"
 from friends
          join users user1
               on user1.id = friends."userId1"

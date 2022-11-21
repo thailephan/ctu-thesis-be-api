@@ -162,7 +162,7 @@ module.exports = {
                             email,
                             ceil(extract(epoch from invitations."createdAt"))::int as "createdAt"
                      from invitations join users
-                     on invitations."senderId" = users.id
+                     on invitations."receiverId" = users.id
                      where "senderId" = $1`;
         const params = [id];
         console.log(id);
@@ -176,7 +176,7 @@ module.exports = {
                             email,
                             ceil(extract(epoch from invitations."createdAt"))::int as "createdAt"
                      from invitations join users
-                     on invitations."receiverId" = users.id
+                     on invitations."senderId" = users.id
                      where "receiverId" = $1`;
         const params = [id];
         const result = await db.query(sql, params);

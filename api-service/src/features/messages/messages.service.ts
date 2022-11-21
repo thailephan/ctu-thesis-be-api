@@ -30,8 +30,15 @@ module.exports = {
                                              values (?, ?, ?, ?, ?, toTimestamp(now()), 1, ?)`, params, {
             prepare: true
         });
-        console.log(channelId, currentMsgId, typeof channelId, typeof currentMsgId);
-        const newMessageResult = await client.execute(`select * from messagesByChannels where "channelId" = ? and status = 1 and id = ?`,
+
+        const newMessageResult = await client.execute(` select "channelId", id,
+                    toUnixTimestamp("createdAt") / 1000 as "createdAt",
+                    "messageTypeId",
+                    "message",
+                    "createdBy",
+                    status,
+                    "replyForId"
+                from messagesbychannels where "channelId" = ? and status = 1 and id = ?`,
             [channelId, currentMsgId + 1], { prepare: true});
         return newMessageResult.rows[0];
     },
