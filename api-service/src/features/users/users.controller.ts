@@ -231,7 +231,7 @@ module.exports = (app: Express, firebase: any) => {
         }
     });
     app.get("/users/search", middleware.verifyToken, async (req, res) => {
-        const { searchText } = req.body;
+        const { searchText } = req.query;
 
         // TODO: Handle empty error
         const result = await service.searchUser({searchText});
