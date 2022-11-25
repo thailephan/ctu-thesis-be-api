@@ -281,7 +281,7 @@ module.exports = (app: Express, firebase: any) => {
             const requestMailServiceResult = await axios.post(config.service.mailServiceUrl + "/sendResetPasswordEmail", {
                 ...user,
                 to: email,
-                resetUrl: `http://localhost:5173/reset-password?code=${code}`,
+                resetUrl: `http://localhost:4003/reset-password?code=${code}`,
             });
             if (requestMailServiceResult.data.success) {
                 return res.status(200).json({

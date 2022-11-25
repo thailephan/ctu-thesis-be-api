@@ -1,9 +1,11 @@
 require("dotenv").config({
     path: ".env.local.development",
 })
+const path = require("path");
 const ejs = require("ejs");
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
+const cors = require("cors");
 const config = require("./config");
 const Helpers = require("./common/helpers");
 const debug = require("./common/debugger");
@@ -20,8 +22,25 @@ oauth2Client.setCredentials({
      refresh_token: config.oauth_google.refresh_token,
 });
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '/views'));
+app.get("/reset-password", (req, res) => {
+    const { code } = req.query;
+    if (!code) {
+       return res.status(400).json({
+           success: false,
+           message: "code không được rỗng",
+           data: null,
+       })
+    }
+   return res.render("reset-password", {
+       code,
+   });
+})
 
 app.post("/sendResetPasswordEmail", async (req, res) => {
     const {to, fullName, resetUrl} = req.body;
