@@ -1,12 +1,12 @@
 import bcrypt from "bcryptjs";
 import { Express } from "express";
+import axios from "axios";
 const service = require("./users.service");
 const config = require("../../config");
 const debug = require("../../common/debugger");
 const Helpers = require("../../common/helpers");
 const middleware = require("../../middleware");
 const redis = require("../../data.storage");
-const axios = require("axios");
 
 module.exports = (app: Express, firebase: any) => {
     app.get("/admin/users/getAll", async (req, res) => {

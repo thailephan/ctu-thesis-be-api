@@ -1,4 +1,5 @@
 import { Express } from "express";
+const Constants = require("../../common/constants");
 const service = require("./friends.service");
 const debug = require("../../common/debugger");
 const Helpers = require("../../common/helpers");
@@ -12,6 +13,29 @@ module.exports = (app: Express) => {
 
         try {
             const friends = await service.getAllByUserId(id);
+            return res.status(200).json({
+                message: null,
+                data: friends,
+                success: true,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                data: null,
+                success: false,
+            })
+        }
+    });
+    app.get("/friends/search", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        const id  = req.user.id;
+
+        const { searchText = "", pageSize = Constants.PAGE_LIMIT } = req.query;
+
+        debug.api("friends/getPaged", id);
+
+        try {
+            const friends = await service.searchUsers({ id, searchText, pageSize });
             return res.status(200).json({
                 message: null,
                 data: friends,
