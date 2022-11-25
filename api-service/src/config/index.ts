@@ -5,4 +5,5 @@ module.exports = {
    helpers: require("./helpers.config"),
    token: require("./token.config"),
    oauth_google: require("./oauth-google.config"),
+   service: require("./service.config"),
 }

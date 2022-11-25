@@ -120,5 +120,18 @@ module.exports = {
                      from users
                      where lower(email) LIKE lower($1) or lower("fullName") LIKE lower($1) and status = 1;`
         return (await db.query(sql, [`%${searchText}%`])).rows;
+    },
+    getUserByEmail: async ({email}) => {
+        const sql = `select id, "fullName", email
+                     from users
+                     where email = $1
+                     limit 1`;
+        return (await db.query(sql, [email])).rows[0];
+    },
+    changePassword: async ({email, hash}: any) => {
+        const sql = `update users
+                     set hash = $1
+                     where email = $2 returning id, "fullName", email`;
+        return (await db.query(sql, [hash, email])).rows[0];
     }
 };

@@ -1,9 +1,12 @@
 import bcrypt from "bcryptjs";
 import { Express } from "express";
 const service = require("./users.service");
+const config = require("../../config");
 const debug = require("../../common/debugger");
 const Helpers = require("../../common/helpers");
 const middleware = require("../../middleware");
+const redis = require("../../data.storage");
+const axios = require("axios");
 
 module.exports = (app: Express, firebase: any) => {
     app.get("/admin/users/getAll", async (req, res) => {
@@ -241,5 +244,120 @@ module.exports = (app: Express, firebase: any) => {
             statusCode: 200,
             data: result
         });
+    });
+    app.post("/users/resetPassword", async (req, res) => {
+        const email = req.body.email;
+
+        if (Helpers.isNullOrEmpty(email) && !Helpers.isEmail(email)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: "Email không hợp lệ",
+            });
+        }
+
+        try {
+            const user = await service.getUserByEmail({ email });
+
+            if (!user) {
+                return res.status(200).json({
+                    success: false,
+                    statusCode: 200,
+                    data: null,
+                    message: "Không tìm thấy email",
+                });
+            }
+
+            // TODO: Save to redis with timeout
+            const code = Helpers.randomString();
+            redis.set(code, {
+               ...user,
+                email,
+                iat: (new Date()).getTime(),
+                exp: 3600 * 1000,
+            });
+
+            const requestMailServiceResult = await axios.post(config.service.mailServiceUrl + "/sendResetPasswordEmail", {
+                ...user,
+                to: email,
+                resetUrl: `http://localhost:5173/reset-password?code=${code}`,
+            });
+            if (requestMailServiceResult.data.success) {
+                return res.status(200).json({
+                    success: true,
+                    statusCode: 200,
+                    data: "Gửi mail đặt lại mật khẩu thành công",
+                    message: null,
+                });
+            } else {
+                return res.status(200).json(...requestMailServiceResult.data);
+            }
+
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: e.message,
+            });
+        }
+    });
+    app.post("/users/confirmResetPassword", async (req, res) => {
+        const { password, confirmPassword, code } = req.body;
+
+        const user = redis.get(code);
+        if (Helpers.isNullOrEmpty(user)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: "Không tìm thấy user cần cập nhật mật khẩu với code: " + code,
+            });
+        }
+
+        if (Helpers.isNullOrEmpty(password)) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: "Mật khẩu rỗng",
+            });
+        }
+        if (!Helpers.isNullOrEmpty(confirmPassword) && confirmPassword.localeCompare(password) !== 0) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: "Mật khẩu và xác nhận mật khẩu không khớp",
+            });
+        }
+
+        try {
+            const passwordHash = await Helpers.hash(password);
+            const result = await service.changePassword({ hash: passwordHash, email: user.email });
+            if (result) {
+                return res.status(200).json({
+                    success: true,
+                    statusCode: 200,
+                    data: result,
+                    message: null,
+                });
+            } else {
+                return res.status(200).json({
+                    success: false,
+                    statusCode: 500,
+                    data: null,
+                    message: "Đã có lỗi xảy ra. Không thể cập nhật mật khẩu mới",
+                });
+            }
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                statusCode: 400,
+                data: null,
+                message: e.message,
+            });
+        }
     })
 };
