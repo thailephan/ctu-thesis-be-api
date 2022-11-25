@@ -8,3 +8,4 @@ tests
 volumes
 data
 .idea
+asset-service/.idea
