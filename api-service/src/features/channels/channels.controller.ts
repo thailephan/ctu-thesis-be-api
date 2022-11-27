@@ -1,4 +1,5 @@
 import { Express } from "express";
+const Constants = require("../../common/constants");
 const service = require("./channels.service");
 const debug = require("../../common/debugger");
 const Helpers = require("../../common/helpers");
@@ -66,6 +67,27 @@ module.exports = (app: Express) => {
             });
         }
     });
+    app.get("/channels/search", middleware.verifyToken , async (req, res) => {
+        const { searchText = "", pageSize = Constants.PAGE_LIMIT} = req.query;
+        // @ts-ignore
+        const id = req.user.id;
+
+        try {
+            const channels = await service.searchChannels({userId: id, searchText, pageSize});
+
+            return res.status(200).json({
+                message: null,
+                success: true,
+                data: channels,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                success: false,
+                data: null,
+            });
+        }
+    });
     app.get("/channels/:id/members/getAll", middleware.verifyToken , async (req, res) => {
         // @ts-ignore
         const id = req.params.id || "";
@@ -92,6 +114,7 @@ module.exports = (app: Express) => {
         const userId = req.user.id;
         try {
             const channels = await service.getAllGroupChannels(userId);
+            debug.api("GET /channels/getAllGroupChannels", `UserId: ${userId}, List of channel: ${JSON.stringify(channels)}`);
 
             return res.status(200).json({
                 message: null,
@@ -99,6 +122,7 @@ module.exports = (app: Express) => {
                 data: channels,
             });
         } catch (e) {
+            debug.api("GET /channels/getAllGroupChannels", `params: ${JSON.stringify({userId})}. error message: ${e.message}`, "ERROR");
             return res.status(200).json({
                 message: e.message,
                 success: false,
@@ -112,12 +136,14 @@ module.exports = (app: Express) => {
         try {
             const channels = await service.getAllFriendChannels(userId);
 
+            debug.api("GET /channels/getAllFriendChannels", `params: ${JSON.stringify({userId})}, list of channel: ${channels}`);
             return res.status(200).json({
                 message: null,
                 success: true,
                 data: channels,
             });
         } catch (e) {
+            debug.api("GET /channels/getAllFriendChannels", `params: ${JSON.stringify({userId})}. error message: ${e.message}`, "ERROR");
             return res.status(200).json({
                 message: e.message,
                 success: false,
@@ -150,12 +176,14 @@ module.exports = (app: Express) => {
                 });
             }
 
+            debug.api("GET /channels/getAllMembersIdByChannelId", `params: ${JSON.stringify({channelId, senderId})}. List channel of user ${senderId}: ${channelsWithMembersId}`);
             return res.status(200).json({
                 message: null,
                 success: true,
                 data: channelsWithMembersId,
             });
         } catch(e) {
+            debug.api("GET /channels/getAllMembersIdByChannelId", `params: ${JSON.stringify({channelId, senderId})}. error message: ${e.message}`, "ERROR");
             return res.status(200).json({
                 message: e.message,
                 success: false,

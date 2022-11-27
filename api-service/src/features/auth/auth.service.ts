@@ -3,7 +3,6 @@ import {IAccount} from "../../common/interface";
 export {}
 const db = require("../../repository");
 const Helpers = require("../../common/helpers");
-const debug = require("../../common/debugger");
 
 module.exports = {
     async getAccountByEmail(email: string) {

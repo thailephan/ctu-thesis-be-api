@@ -1,8 +1,5 @@
-import {ICondition, IQueryParams} from "../../common/interface";
-import {add} from "winston";
-
+export {};
 const db = require("../../repository");
-const debug = require("../../common/debugger");
 const Helpers = require("../../common/helpers");
 
 module.exports = {
@@ -88,11 +85,6 @@ module.exports = {
         const params = [senderId, receiverId];
         const sqlPrecheckInvitation = `select * from invitations where ("senderId" = $1 and "receiverId" = $2) or ("senderId" = $2 and "receiverId" = $1) limit 1;`;
         const {rows: existed} = await db.query(sqlPrecheckInvitation, params);
-        debug.db("invitation:deleteInvitation", {
-            query: sqlPrecheckInvitation,
-            params,
-            rows: existed,
-        });
         if (Helpers.isNullOrEmpty(existed[0])) {
             throw Error("Lời mời kết bạn không còn tồn tại");
         } else {
@@ -100,9 +92,6 @@ module.exports = {
                 where ("senderId" = $1 and "receiverId" = $2) or ("senderId" = $2 and "receiverId" = $1);`
             const result = await db.query(sql, params);
 
-            debug.db("invitation:deleteInvitation", {
-                rows: result.rows,
-            });
             return result.rows[0];
         }
     },
@@ -125,10 +114,6 @@ module.exports = {
 
                 await client.query(deleteInvitationSql, params);
                 await client.query(addFriendSql, params);
-                debug.db("invitation:addFriend", {
-                    invitation: deleteInvitationSql,
-                    friend: addFriendSql
-                });
 
                 const createChannel = `insert into channels("channelTypeId") values ($1) returning *`;
                 const createChannelParams = [1];

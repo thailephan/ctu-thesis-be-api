@@ -1,6 +1,5 @@
 import {IMessageQueryParams} from "../../common/interface";
 
-const debug = require("../../common/debugger");
 const db = require("../../repository");
 const client = require("../../repository/cassandra");
 

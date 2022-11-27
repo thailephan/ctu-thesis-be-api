@@ -47,6 +47,7 @@ const Helpers = {
     },
     // JWT
     generateToken(payload: any) {
+        debug.helper("generateToken", `Token's payload: ${JSON.stringify(payload)}`);
         return jwt.sign(payload, config.token.accessTokenSecret);
     },
     /**

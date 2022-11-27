@@ -1,5 +1,5 @@
+export {};
 const db = require("../../repository");
-const debug = require("../../common/debugger");
 const Constants = require("../../common/constants");
 
 module.exports = {
@@ -40,9 +40,6 @@ where friends.status = 1
         `;
         const params = [id]
         const result = await db.query(sql, params);
-        debug.db("friends-service", {
-            rows: result.rows, params,
-        });
         return result.rows;
     },
     unFriend: async ({userId1, userId2}) => {
@@ -116,9 +113,6 @@ where friends.status = 1
         `;
         const params = [id, `%${searchText}%`, pageSize];
         const result = await db.query(sql, params);
-        debug.db("friends-service", {
-            rows: result.rows, params,
-        });
         return result.rows;
     }
 };

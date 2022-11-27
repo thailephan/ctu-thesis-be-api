@@ -1,13 +1,21 @@
 export {};
+import {format} from "date-fns";
 const debug = require("debug");
 
+type DEBUG_LEVEL = "INFO" | "ERROR" | "WARN";
+
+function bug(type: string) {
+    return function (f: any, message: any, level: DEBUG_LEVEL = "INFO") {
+        debug(`API-SERVICE| ${type} | ${level} | ${f} |`)(`${format(new Date(), "dd-MM-yyyy HH:mm")} | ${JSON.stringify(message)}`);
+    };
+}
+
 module.exports = {
-    websocket: debug("app:websocket"),
-    api: debug("app:api"),
-    cassandra: debug("app:cassandra"),
-    db: debug("app:db"),
-    dbError: debug("app:db: error"),
-    middleware: debug("app:middleware"),
-    kafka: debug("app:kafka"),
-    debugger: (type: string, ...msg: any) => debug(`app:${type}`)(...msg),
+    cassandra: bug("CASSANDRA"),
+    websocket: bug("websocket"),
+    db: bug("DB"),
+    middleware: bug("MIDDLEWARE"),
+    kafka: bug("KAFKA"),
+    api: bug("API"),
+    helper: bug("helper"),
 }

@@ -3,7 +3,6 @@ const service = require("./invitations.service");
 const debug = require("../../common/debugger");
 const middleware = require("../../middleware");
 const Helpers = require("../../common/helpers");
-const { filterGetList } = require("../../middleware");
 
 // Get all friend request (*)
 // Create friend request to another user with id (1)

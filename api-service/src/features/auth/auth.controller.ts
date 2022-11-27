@@ -12,6 +12,9 @@ const constants = require("../../common/constants");
 const GOOGLE_REGISTER_TYPE_ID = 2;
 module.exports = (app: Express) => {
     app.post("/auth/verifyToken", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+        debug.api("POST /auth/verifyToken", `Verified User: ${req.user}`);
+
         return res.status(200).json({
             status: 200,
             message: null,
@@ -22,14 +25,17 @@ module.exports = (app: Express) => {
     app.post("/auth/check_mail_registered", async (req, res) => {
         const { email } = req.body;
         if (Helpers.isNullOrEmpty(email)) {
+            debug.api("POST /auth/check_mail_registered | isNullOrEmpty(email)", `${email} not found`, "ERROR");
             return res.status(200).json({
                 success: false,
                 data: null,
                 message: "Không tìm thấy email",
             });
         }
+
         const result = await service.getAccountByEmail(email);
         if (!result) {
+            debug.api("POST /auth/check_mail_registered", `${email} not registered`, "ERROR");
             return res.status(200).json({
                 success: true,
                 data: {
@@ -38,6 +44,8 @@ module.exports = (app: Express) => {
                 message: null,
             });
         }
+
+        debug.api("POST /auth/check_mail_registered", `${email} registered`);
         return res.status(200).json({
             success: true,
             data: {
@@ -50,6 +58,7 @@ module.exports = (app: Express) => {
     app.post("/auth/register", async (req, res) => {
         const {fullName, password, email} = req.body;
         if (Helpers.isNullOrEmpty(email)) {
+            debug.api("POST /auth/register | isNullOrEmpty(email)", `${email} not found`, "ERROR");
             return res.status(200).json({
                 success: false,
                 message: "Không tìm thấy email",
@@ -57,6 +66,7 @@ module.exports = (app: Express) => {
             });
         }
         if (!Helpers.isEmail(email)) {
+            debug.api("POST /auth/register | isEmail(email)", `${email} has wrong format`, "ERROR");
             return res.status(200).json({
                 success: false,
                 data: null,
@@ -65,6 +75,7 @@ module.exports = (app: Express) => {
             });
         }
         if (Helpers.isNullOrEmpty(password)) {
+            debug.api("POST /auth/register | isNullOrEmpty(password)", `${password} is empty`, "ERROR");
             return res.status(200).json({
                 success: false,
                 data: null,
@@ -73,6 +84,7 @@ module.exports = (app: Express) => {
         }
         const account = await service.getAccountByEmail(email);
         if (!Helpers.isNullOrEmpty(account)) {
+            debug.api("POST /auth/register | isNullOrEmpty(getAccountByEmail(email))", `${email} has registered`, "ERROR");
             return res.status(200).json({
                 statusCode: 400,
                 success: false,
@@ -92,6 +104,7 @@ module.exports = (app: Express) => {
             // create account with username and password
             await service.createAccount(default_account);
 
+            debug.api("POST /auth/register | isNullOrEmpty(getAccountByEmail(email))", `${JSON.stringify(default_account)} has created`);
             // return success with login token
             return res.status(200).json({
                 success: true,
@@ -102,6 +115,7 @@ module.exports = (app: Express) => {
         } catch (e) {
             let message = e.message;
 
+            debug.api("POST /auth/register | isNullOrEmpty(getAccountByEmail(email))", `${JSON.stringify(default_account)} failed to create`, "ERROR");
             return res.status(200).json({
                 success: false,
                 data: null,
@@ -115,6 +129,7 @@ module.exports = (app: Express) => {
     app.post("/auth/login", async (req, res) => {
         const {email, password} = req.body;
         if ([email, password].some(v => Helpers.isNullOrEmpty(v))) {
+            debug.api("POST /auth/login", `Email: ${email} or password: ${password} is empty`, "ERROR");
             return res.status(200).json({
                 success: false,
                 data: null,
@@ -125,6 +140,7 @@ module.exports = (app: Express) => {
 
         const account = await service.getAccountByEmail(email);
         if (Helpers.isNullOrEmpty(account)) {
+            debug.api("POST /auth/login | getAccountByEmail", `Not found account with email: ${email} or password: ${password}`, "ERROR");
             return res.status(200).json({
                 success: false,
                 data: null,
@@ -135,8 +151,8 @@ module.exports = (app: Express) => {
 
         // check password
         const match = await bcrypt.compare(password, account.hash);
-        debug.api({account, match});
         if (!match) {
+            debug.api("POST /auth/login | bcrypt.compare", `account.hash is not match with password: ${password}`, "ERROR");
             return res.status(200).json({
                 success: false,
                 data: null,
@@ -153,13 +169,15 @@ module.exports = (app: Express) => {
         delete account.registerTypeId;
 
         const payload: ITokenPayload = account;
+        const accessToken = Helpers.generateToken(payload);
 
+        debug.api("POST /auth/login", `Login success with token: ${accessToken}`, "INFO");
         return res.status(200).json({
             success: true,
             message: null,
             statusCode: 200,
             data: {
-                accessToken: Helpers.generateToken(payload),
+                accessToken,
             },
         })
     });
@@ -170,6 +188,7 @@ module.exports = (app: Express) => {
 
         const account = await service.getAccountByEmail(email);
         if (Helpers.isNullOrEmpty(account)) {
+            debug.api("POST /auth/login/google", `Not found account with mail: ${email}`, "ERROR");
             return res.status(200).json({
                 success: false,
                 data: null,
@@ -186,20 +205,24 @@ module.exports = (app: Express) => {
         delete account.registerTypeId;
 
         const payload: ITokenPayload = account;
+        const accessToken = Helpers.generateToken(payload);
 
+        debug.api("POST /auth/login", `Login success with token: ${accessToken}`, "INFO");
         return res.status(200).json({
             success: true,
             message: null,
             statusCode: 200,
             data: {
-                accessToken: Helpers.generateToken(payload),
+                accessToken,
             },
-        });
+        })
     });
     app.post("/auth/logout", middleware.verifyToken, (req, res) => {
         // remove token from redis
         // @ts-ignore
         if (req.user) {
+            // @ts-ignore
+            debug.api("POST /auth/logout", `Logout success with token: ${JSON.stringify(req.user)}`, "INFO");
             return res.status(200).json({
                 success: true,
                 data: null,
@@ -207,6 +230,7 @@ module.exports = (app: Express) => {
                 statusCode: 200,
             });
         } else {
+            debug.api("POST /auth/logout", `Logout failed`, "ERROR");
             return res.status(200).json({
                 success: true,
                 statusCode: 400,
