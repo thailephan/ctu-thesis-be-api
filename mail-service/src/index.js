@@ -1,15 +1,17 @@
 require("dotenv").config({
-    path: ".env.local.development",
+    path: ".env.development.local",
 })
 const path = require("path");
 const ejs = require("ejs");
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 const cors = require("cors");
+const express = require("express");
 const config = require("./config");
 const Helpers = require("./common/helpers");
 const debug = require("./common/debugger");
-const express = require("express");
+
+const redisClient = require("./common/redis").redisClient;
 const app = express();
 
 const OAuth2 = google.auth.OAuth2;

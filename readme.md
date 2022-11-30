@@ -1,5 +1,21 @@
 # Backend node
-
+## Library
+### Test
+- chai
+- supertest
+### Image
+- multer: Upload image
+- sharp: resize, crop,... image
+### Debug, logger
+- winston
+- debug
+### Reduce size
+- compression
+### Work with date time
+- date-fns
+### Redis
+- UI Manager: https://github.com/qishibo/AnotherRedisDesktopManager 
+- https://redis.com
 ## Api service
 - Default port: 4001
 ```shell
@@ -9,6 +25,10 @@ $ npm run dev
 ```
 ## Chat service
 - Default port: 4002
+
+[X] Typing
+
+[X] User
 
 ## Asset service
 - Default port: 8080

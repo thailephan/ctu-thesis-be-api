@@ -8,7 +8,7 @@ const Helpers = require("../../common/helpers");
 const middleware = require("../../middleware");
 const redis = require("../../data.storage");
 
-module.exports = (app: Express, firebase: any) => {
+module.exports = (app: Express) => {
     app.get("/admin/users/getAll", async (req, res) => {
         try {
             const users = await service.getAll();
@@ -31,19 +31,19 @@ module.exports = (app: Express, firebase: any) => {
         const { fullName, birthday, gender, phoneNumber } = req.body;
 
         const dbGender = Helpers.isNullOrEmpty(gender) ? user.gender : gender;
+        console.log(req.body);
         try {
             const updatedUser = await service.updateUser({id: user.id, fullName, birthday,
                 gender: dbGender, phoneNumber });
-
+            debug.api("POST /users/update", `User id: ${user.id}. Data: ${JSON.stringify(updatedUser)}`)
             return res.status(200).json({
                 statusCode: 200,
                 success: true,
-                data: {
-                    updatedUser: updatedUser,
-                },
+                data: updatedUser,
                 message: null,
             });
         } catch(e) {
+            debug.api("POST /users/update", `User id: ${user.id}. Error: ${JSON.stringify(e.message)}`, "ERROR")
             return res.status(200).json({
                 statusCode: 400,
                 success: false,

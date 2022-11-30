@@ -27,8 +27,9 @@ module.exports = {
         return result.rows;
     },
     updateUser: async ({id, fullName, birthday, gender, phoneNumber}: any) => {
-        let columns = [];
+        let columns = ['"updatedAt" = now()'];
         const params = [id];
+
         if (!Helpers.isNullOrEmpty(birthday)) {
             params.push(birthday);
             columns.push("birthday = to_timestamp($" + (params.length) + ")");
@@ -46,7 +47,7 @@ module.exports = {
             columns.push(`"fullName" = $` + params.length);
         }
 // "fullName" = $2, birthday = to_timestamp($3), gender = $4, "phoneNumber" = $5
-        const sql = `update users set ${columns.join(", ")}, "createdAt" = now() where id = $1
+        const sql = `update users set ${columns.join(", ")} where id = $1
             returning    "id",
                          "fullName",
                          "registerTypeId",
@@ -57,7 +58,6 @@ module.exports = {
                          "avatarUrl",
                          "status",
                          "onlineStatus",
-                         ceil(extract(epoch from "lastOnlineTime"::timestamp))::int as "lastOnlineTime",
                          ceil(extract(epoch from "createdAt"::timestamp))::int as "createdAt",
                          ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
                          "createdBy",
@@ -84,7 +84,6 @@ module.exports = {
                          "avatarUrl",
                          "status",
                          "onlineStatus",
-                         ceil(extract(epoch from "lastOnlineTime"::timestamp))::int as "lastOnlineTime",
                          ceil(extract(epoch from "createdAt"::timestamp))::int as "createdAt",
                          ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
                          "createdBy",

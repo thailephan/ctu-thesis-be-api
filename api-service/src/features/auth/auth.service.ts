@@ -9,26 +9,6 @@ module.exports = {
         if (Helpers.isNullOrEmpty(email)) {
            return null;
         }
-        // Old select (all data)
-        // let sql = `select
-        //                "id",
-        //                "fullName",
-        //                "registerTypeId",
-        //                "email",
-        //                hash,
-        //                "tempHash",
-        //                ceil(extract(epoch from "birthday"::timestamp))::int as "birthday",
-        //                "gender",
-        //                "phoneNumber",
-        //                "avatarUrl",
-        //                "status",
-        //                "onlineStatus",
-        //                ceil(extract(epoch from "lastOnlineTime"::timestamp))::int as "lastOnlineTime",
-        //                ceil(extract(epoch from "createdAt"::timestamp))::int as "createdAt",
-        //                ceil(extract(epoch from "updatedAt"::timestamp))::int as "updatedAt",
-        //                "createdBy",
-        //                "updatedBy"
-        //     from users where email = $1 limit 1;`
 
         // New (Just select email, registerTypeId, email) for less effect jwt when update user data
         let sql = `select
@@ -36,7 +16,8 @@ module.exports = {
                        "email",
                        "registerTypeId",
                        "hash"
-            from users where email = $1 limit 1;`
+            from users 
+            where email = $1 limit 1;`
         const params = [email];
         const result = await db.query(sql, params);
         return result.rows[0];
@@ -49,4 +30,10 @@ module.exports = {
         console.log(result);
         return result.rows[0];
     },
+    async addUserDevice(deviceData: { id: number, userAgent: string, platform: string | null, subscribeGroupId: string }) {
+       const now = new Date();
+       const sql = `insert into devices(platform, "userAgent", "createdAt", "updatedAt", "userId", "subscribeGroupId") VALUES ($1, $2, now(), now(), $3, $4) returning *`;
+       const params = [deviceData.platform, deviceData.userAgent, deviceData.id, deviceData.subscribeGroupId];
+       return (await db.query(sql, params)).rows[0];
+    }
 }

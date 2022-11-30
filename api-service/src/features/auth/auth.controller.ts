@@ -8,6 +8,7 @@ const debug = require("../../common/debugger");
 const middleware = require("../../middleware");
 const service = require('./auth.service');
 const constants = require("../../common/constants");
+const redisClient = require("../../common/redis").redisClient;
 
 const GOOGLE_REGISTER_TYPE_ID = 2;
 module.exports = (app: Express) => {
@@ -168,6 +169,16 @@ module.exports = (app: Express) => {
         delete account.hash;
         delete account.registerTypeId;
 
+        const platform = req.headers["user-agent"].match(/\(([\d\w\ \.]*)(?=;)/i)?.[1] || null;
+        const subscribeGroupId = `user/${account.id}/${Helpers.randomString()}`;
+        const addUserLoginDevice = await service.addUserDevice({ id: account.id,
+            userAgent: req.headers["user-agent"],
+            platform,
+            subscribeGroupId,
+        });
+        account.deviceId = addUserLoginDevice?.id || "Empty";
+        account.subscribeGroupId = subscribeGroupId;
+
         const payload: ITokenPayload = account;
         const accessToken = Helpers.generateToken(payload);
 
@@ -204,8 +215,20 @@ module.exports = (app: Express) => {
         delete account.hash;
         delete account.registerTypeId;
 
+        const platform = req.headers["user-agent"].match(/\(([\d\w\ \.]*)(?=;)/i)?.[1] || null;
+        const subscribeGroupId = `user/${account.id}/${Helpers.randomString()}`;
+        const addUserLoginDevice = await service.addUserDevice({ id: account.id,
+            userAgent: req.headers["user-agent"],
+            platform,
+            subscribeGroupId,
+        });
+
+        account.deviceId = addUserLoginDevice?.id || "Empty";
+        account.subscribeGroupId = subscribeGroupId;
         const payload: ITokenPayload = account;
         const accessToken = Helpers.generateToken(payload);
+
+        await redisClient.sAdd(`users/device/${account.id}`, account.deviceId);
 
         debug.api("POST /auth/login", `Login success with token: ${accessToken}`, "INFO");
         return res.status(200).json({

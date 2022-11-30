@@ -1,11 +1,4 @@
 import { Request } from "express";
-import admin from "firebase-admin";
-import {Bucket} from "@google-cloud/storage";
-
-export interface IFirebase {
-    bucket: Bucket,
-    firebase: admin.app.App,
-}
 
 export interface IRequest extends  Request {
     file: IFile;
@@ -20,7 +13,6 @@ export interface IFile {
     buffer: any;
     size: number;
 }
-
 // Query
 export interface IQueryParams {
     search?: string;
@@ -30,11 +22,6 @@ export interface IQueryParams {
     limit?: number;
     status?: number;
 }
-export interface ICondition {
-    search?: string;
-    status?: number;
-}
-
 // User
 export interface IUser {
     email?: string;
@@ -50,9 +37,6 @@ export interface IUser {
     updated_by?: number,
     updated_at?: string,
     status?: number,
-}
-
-export interface IUserQueryParams extends IQueryParams, IUser {
 }
 
 // JWT
@@ -73,10 +57,6 @@ export interface IAccount {
     role?: number
     registerTypeId?: number,
     fullName?: string;
-}
-
-export interface IMesasgeCondition {
-    search?: string;
 }
 
 export interface IMessageQueryParams {
