@@ -112,14 +112,27 @@ module.exports = {
     searchUser: async ({searchText, userId}) => {
         console.log(searchText, userId);
         const sql = `
-            select lower("fullName") LIKE lower($2) "isFindInFullName",
-                    lower("email") LIKE lower($2) "isFindInEmail", "fullName", id, email, "avatarUrl", "phoneNumber",
-                   (("userId2" = $1 and "userId1" = users.id) or ("userId1" = $1 and "userId2" = users.id)) "isFriend",
-                    ("receiverId" = id) "isInvitationReceiver", ("senderId" = id) "isInvitationSender"
-            from users
-                join friends on (users.id = friends."userId1" or users.id = friends."userId2")
-                left join invitations i on ((users.id = i."receiverId" and "senderId" = $1) or (users.id = i."senderId" and "receiverId" = $1))
-            where (lower(email) LIKE lower($2) or lower("fullName") LIKE lower($2)) and users.status = 1 and friends.status = 1 and not id = $1;`
+            with filteredUsers as (
+    select lower("fullName") LIKE lower($2) "isFindInFullName",
+           lower("email") LIKE lower($2) "isFindInEmail", "fullName", id, email, "avatarUrl", "phoneNumber", status
+    from users
+    where (lower(email) LIKE lower($2) or lower("fullName") LIKE lower($2)) and users.status = 1 and not id = $1
+), friendFilters as (
+   select u.*,
+case ((friends."userId2" = $1 and friends."userId1" = id) or (friends."userId2" = id and friends."userId1" = $1))
+        when true then true
+            else false
+       end "isFriend"
+   from filteredUsers u
+       left join friends on ((friends."userId2" = $1 and friends."userId1" = id) or (friends."userId2" = id and friends."userId1" = $1)) and friends.status = 1
+), invitationFitlers as (
+    select f.*, case "senderId"
+        when id then true else false end "isInvitationSender",
+    case "receiverId"
+        when id then true else false end "isInvitationReceiver"
+    from friendFilters f
+             left join invitations i on ((i."senderId" = $1 and i."receiverId" = id) or (i."senderId" = id and i."receiverId" = $1))
+) select * from invitationFitlers; `
         return (await db.query(sql, [userId, `%${searchText}%`])).rows;
     },
     getUserByEmail: async ({email}) => {

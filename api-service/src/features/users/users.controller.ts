@@ -238,7 +238,7 @@ module.exports = (app: Express, firebase: any) => {
 
         // TODO: Handle empty error
         // @ts-ignore
-        const result = await service.searchUser({searchText, userId: req.user.id});
+        const result = await service.searchUser({searchText: searchText.trim(), userId: req.user.id});
 
         return res.status(200).json({
             success: true,
