@@ -360,5 +360,8 @@ module.exports = (app: Express, firebase: any) => {
                 message: e.message,
             });
         }
-    })
+    });
+    app.post("/users/activateAccount", async (req, res) => {
+        // TODO: Post
+    });
 };

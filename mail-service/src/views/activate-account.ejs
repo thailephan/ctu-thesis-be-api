@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <div><%= email %></div>
+    <button type="button" onclick="g()">Kích hoạt tài khoản</button>
+    <script>
+        let code = "<%= code %>";
+        function g() {
+            console.log("click");
+           fetch("http://localhost:4001/users/activateAccount", {
+               method: "post",
+               headers: {
+                   'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({
+                   email: "<%= email %>",
+               }),
+           }).then(result => result.json()).then((json) => {
+               console.log(json);
+               if (json.success) {
+                   alert("Kích hoạt tài khoản thành công");
+               } else {
+                   alert("Đã có lỗi xảy ra");
+               }
+           }).catch(e => {
+               console.log(e);
+           })
+        }
+    </script>
+</body>
+</html>
