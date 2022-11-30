@@ -109,12 +109,18 @@ module.exports = {
         const sql = `update users set hash = $1, "updatedAt" = now() where id = $2 returning *`;
         return (await db.query(sql, [hash, id])).rows[0];
     },
-    searchUser: async ({searchText}) => {
-        const sql = `select lower("fullName") LIKE lower($1) "isFindInFullName",
-                     lower("email") LIKE lower($1) "isFindInEmail", "fullName", id, email, "avatarUrl", "phoneNumber"
-                     from users
-                     where lower(email) LIKE lower($1) or lower("fullName") LIKE lower($1) and status = 1;`
-        return (await db.query(sql, [`%${searchText}%`])).rows;
+    searchUser: async ({searchText, userId}) => {
+        console.log(searchText, userId);
+        const sql = `
+            select lower("fullName") LIKE lower($2) "isFindInFullName",
+                    lower("email") LIKE lower($2) "isFindInEmail", "fullName", id, email, "avatarUrl", "phoneNumber",
+                   (("userId2" = $1 and "userId1" = users.id) or ("userId1" = $1 and "userId2" = users.id)) "isFriend",
+                    ("receiverId" = id) "isInvitationReceiver", ("senderId" = id) "isInvitationSender"
+            from users
+                join friends on (users.id = friends."userId1" or users.id = friends."userId2")
+                left join invitations i on ((users.id = i."receiverId" and "senderId" = $1) or (users.id = i."senderId" and "receiverId" = $1))
+            where (lower(email) LIKE lower($2) or lower("fullName") LIKE lower($2)) and users.status = 1 and friends.status = 1 and not id = $1;`
+        return (await db.query(sql, [userId, `%${searchText}%`])).rows;
     },
     getUserByEmail: async ({email}) => {
         const sql = `select id, "fullName", email
