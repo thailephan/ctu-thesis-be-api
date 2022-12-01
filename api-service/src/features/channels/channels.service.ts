@@ -205,7 +205,7 @@ where  friends.status = 1 and "typeId" = 1
         sql += ` and c."typeId" = $${params.length}`;
     }
     const result = await db.query(sql, params);
-
+    console.log(sql, result);
     return (await (Promise.all(result.rows.map(async (channel: any) => {
         const message = (await client.execute(`select
                                                          "channelId", id,
@@ -219,6 +219,8 @@ where  friends.status = 1 and "typeId" = 1
         if (message !== null) {
             console.log(message);
             channel.lastMessage = {...message, createdAt: message.createdAt.low};
+        } else {
+            channel.lastMessage = null;
         }
         return channel;
     })))).filter(c => c.lastMessage !== null);
