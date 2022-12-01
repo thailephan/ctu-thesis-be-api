@@ -206,10 +206,22 @@ where  friends.status = 1 and "typeId" = 1
     }
     const result = await db.query(sql, params);
 
-    return await (Promise.all(result.rows.map(async (channel: any) => {
-        channel.lastMessage = (await client.execute(`select * from messagesByChannels where "channelId" = ? and status = 1 limit 1;`, [ channel.id ], {prepare: true})).rows[0] || null;
+    return (await (Promise.all(result.rows.map(async (channel: any) => {
+        const message = (await client.execute(`select
+                                                         "channelId", id,
+                                                         cast(toUnixTimestamp("createdAt") as bigint) / 1000 as "createdAt",
+                                                         "messageTypeId",
+                                                         "message",
+                                                         "createdBy",
+                                                         status,
+                                                         "replyForId"
+    from messagesByChannels where "channelId" = ? and status = 1 limit 1;`, [ channel.id ], {prepare: true})).rows[0] || null
+        if (message !== null) {
+            console.log(message);
+            channel.lastMessage = {...message, createdAt: message.createdAt.low};
+        }
         return channel;
-    })));
+    })))).filter(c => c.lastMessage !== null);
 }
 const removeUserToTypingList = async ({channelId, typingId}) => {
     const getSql = `select *
