@@ -369,5 +369,49 @@ module.exports = (app: Express) => {
                 data: null,
             })
         }
-    })
+    });
+    app.get("/channels/:channelId/getImageMessages", async (req, res) => {
+        try {
+            // TODO: check that user in channel
+            // @ts-ignore
+            const { channelId } = req.params;
+            const result = await service.getImageMessages({ channelId });
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                data: result,
+                message: null,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                statusCode: 400,
+                success: false,
+                data: null,
+                message: e.message,
+            })
+        }
+
+    });
+    app.get("/channels/:channelId/getFileMessages", async (req, res) => {
+        try {
+            // TODO: check that user in channel
+            // @ts-ignore
+            const { channelId } = req.params;
+            const result = await service.getFileMessages({ channelId });
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                data: result,
+                message: null,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                statusCode: 400,
+                success: false,
+                data: null,
+                message: e.message,
+            })
+        }
+
+    });
 };

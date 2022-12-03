@@ -55,5 +55,5 @@ module.exports = {
         const result = await db.query(`update userreadmessage set "readUserIds" = $1 where "messageId" = $2 and "channelId" = $3`,
             [newReadUserIds, messageId, channelId]);
         return null;
-    }
+    },
 };

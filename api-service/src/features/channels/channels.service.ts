@@ -471,6 +471,15 @@ module.exports = {
         }
 
         return removeUserToTypingList({ channelId: row.channelId, typingId })
-    }
+    },
     //TODO: Get bulk of user's information by user's id
+
+    getImageMessages: async ({ channelId }) => {
+        const result = await client.execute(`select * from messagesbychannels where "channelId" = ? and "messageTypeId" = 2`, [channelId], { prepare: true });
+        return result.rows;
+    },
+    getFileMessages: async ({ channelId }) => {
+        const result = await client.execute(`select * from messagesbychannels where "channelId" = ? and "messageTypeId" = 3`, [channelId], { prepare: true });
+        return result.rows;
+    },
 };
