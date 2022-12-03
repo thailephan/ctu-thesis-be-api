@@ -6,7 +6,7 @@ const Helpers = require("../../common/helpers");
 const getAll = async (args?: { channelTypeId?: number }) => {
     const params = [];
     let sql = `with channelWithType as (
-    select channels.id,
+    select distinct channels.id,
            "channelTypeId",
            channelTypes.name                              as "channelTypeName",
            channels.status,
@@ -136,7 +136,7 @@ const getAllByUserId = async (args?: {id: number, channelTypeId?: number, search
     const {id, channelTypeId, searchText = "", pageSize} = args || {};
     const params: any = [id];
     let sql = `with channelWithType as (
-    select channels.id,
+    select distinct channels.id,
            "channelTypeId" as "typeId",
            channelTypes.name                              as "typeName",
            channels.status,
@@ -251,9 +251,91 @@ const removeUserToTypingList = async ({channelId, typingId}) => {
     };
 };
 
+const getChannelById = async (args?: {id: number, channelId: number}) => {
+    const {id, channelId} = args || {};
+    const params: any = [id, channelId];
+    let sql = `with channelWithType as (
+    select distinct channels.id,
+           "channelTypeId" as "typeId",
+           channelTypes.name                              as "typeName",
+           channels.status,
+           ceil(extract(epoch from channels."createdAt"))::int as "createdAt"
+    from channels
+             join channelTypes on channelTypes.id = channels."channelTypeId"
+             join channelMembers on channelMembers."channelId" = channels.id
+             where channels.status = 1 and channels.id = $2
+    ),
+     friendChannel as (
+    select cWt.*,
+           case
+               when "userId1" = $1 then user2.id
+               when "userId2" = $1 then user1.id
+               end as "createdBy",
+       case
+           when "userId1" = $1 then user2."avatarUrl"
+           when "userId2" = $1 then user1."avatarUrl"
+           end as "channelAvatarUrl",
+       case
+           when "userId1" = $1 then user2."fullName"
+           when "userId2" = $1 then user1."fullName"
+           end as "channelName",
+        null::int "channelHostId"
+from friends
+         join users user1 on user1.id = friends."userId1"
+         join users user2 on user2.id = friends."userId2"
+         join channelMembers cM1 on user1.id = cM1."memberId"
+         join channelMembers cM2 on user2."id" = cM2."memberId" and cM1."channelId" = cM2."channelId"
+         join channelWithType cwt on cwt.id = cM1."channelId"
+where  friends.status = 1 and "typeId" = 1
+  and ("userId1" = $1 or "userId2" = $1) ),
+    groupChannel as ( select
+                            t.*,
+                          "createdBy",
+                          groupChannelInfo."channelAvatarUrl",
+                          groupChannelInfo."channelName",
+                          groupChannelInfo."channelHostId"
+                          from channelWithType t join groupChannelInfo on id = groupChannelInfo."channelId" where t."typeId" = 2),
+    channelIds as (select * from friendChannel union all select * from groupChannel),
+    channelMembersInfo as (
+    select c.id, jsonb_agg(json_build_object(
+        'id', users.id,
+        'fullName', users."fullName",
+        'email', users."email",
+        'phoneNumber', users."phoneNumber",
+        'birthday', ceil(extract(epoch from users."birthday"))::int,
+        'gender', users."gender",
+        'avatarUrl', users."avatarUrl",
+        'status', users."status",
+        'onlineStatus', users."onlineStatus",
+
+         'invitersFullName', inviters."fullName",
+         'invitersAvatarUrl', inviters."avatarUrl"
+        )) as members from channelMembers
+                join users on users.id = channelMembers."memberId"
+                left join users inviters on channelMembers."invitedBy" = inviters."id"
+                join channelIds c on c."id" = channelMembers."channelId" and channelMembers.status = 1
+                where channelMembers.status = 1 group by c.id
+) select c.*, cMI.members from channelMembersInfo cMI join channelIds c on c.id = cMI.id
+    `;
+    const result = await db.query(sql, params);
+    return (await (Promise.all(result.rows.map(async (channel: any) => {
+        const messages = (await client.execute(`select
+                                                         id,
+                                                         cast(toUnixTimestamp("createdAt") as bigint) / 1000 as "createdAt",
+                                                         "messageTypeId",
+                                                         "message",
+                                                         "createdBy",
+                                                         status,
+                                                         "replyForId"
+    from messagesByChannels where "channelId" = ? and status = 1;`, [ channel.id ], {prepare: true})).rows.map(r => ({...r, createdAt: r.createdAt.low})) || null
+        channel.messages = messages.sort((a, b) => a.id - b.id);
+        return channel;
+    })))).filter(c => c.lastMessage !== null)[0];
+}
 module.exports = {
     getAll,
     removeUserToTypingList,
+    getChannelById,
     getByChannelId: async (id: string) => {
         const sql = `
             select channels.id, "channelTypeId", channelTypes.name as "channelTypeName", channels.status,

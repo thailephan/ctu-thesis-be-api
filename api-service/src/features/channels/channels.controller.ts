@@ -47,6 +47,32 @@ module.exports = (app: Express) => {
             });
         }
     });
+    // Chat channel
+    app.get("/channels/getChannelById/:id" , middleware.verifyToken, async (req, res) => {
+        if (Helpers.isNullOrEmpty(req.params.id)) {
+            return res.status(200).json({
+                message: "Id rỗng",
+                success: false,
+                data: null,
+            });
+        }
+        try {
+            // @ts-ignore
+            const channels = await service.getChannelById({channelId: req.params.id, id: req.user.id});
+
+            return res.status(200).json({
+                message: null,
+                success: true,
+                data: channels,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                success: false,
+                data: null,
+            });
+        }
+    });
     app.get("/channels/getAll", middleware.verifyToken , async (req, res) => {
         // @ts-ignore
         const id = req.user.id;
