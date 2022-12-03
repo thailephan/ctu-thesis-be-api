@@ -139,9 +139,9 @@ io.on("connection", async (socket: OverrideSocket) => {
 
     /* CHAT */
     // Gửi tin nhắn vào nhóm với channenId
-    socket.on("chat/message/send", async ({ channelId, message, replyForId, messageTypeId }) => {
+    socket.on("chat/message/send", async ({ channelId, message, replyForId, messageTypeId, clientSentAt }) => {
         // TODO: check user in channel or not
-        console.log({ message, replyForId, channelId, messageTypeId });
+        console.log({ message, replyForId, channelId, messageTypeId, clientSentAt });
         if (Helpers.isNullOrEmpty(message)) {
             socket.emit("chat/message/send/error", { error: "Tin nhắn không được trống", success: false });
             return;
@@ -159,6 +159,7 @@ io.on("connection", async (socket: OverrideSocket) => {
             debug.socket("/chat/message/send api log", result.data);
             if (result.data.success) {
                 io.to(`${channelId}`).emit("chat/message/send", {
+                    clientSentAt,
                     channelId,
                     emitterId: socket.currentUser.id,
                     senderFullName: socket.currentUser.fullName,
