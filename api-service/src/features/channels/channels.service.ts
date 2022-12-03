@@ -482,4 +482,8 @@ module.exports = {
         const result = await client.execute(`select * from messagesbychannels where "channelId" = ? and "messageTypeId" = 3`, [channelId], { prepare: true });
         return result.rows;
     },
+    getVideoMessages: async ({ channelId }) => {
+        const result = await client.execute(`select * from messagesbychannels where "channelId" = ? and "messageTypeId" = 4`, [channelId], { prepare: true });
+        return result.rows;
+    },
 };

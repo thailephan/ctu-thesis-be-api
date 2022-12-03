@@ -412,6 +412,27 @@ module.exports = (app: Express) => {
                 message: e.message,
             })
         }
+    });
+    app.get("/channels/:channelId/getVideoMessages", async (req, res) => {
+        try {
+            // TODO: check that user in channel
+            // @ts-ignore
+            const { channelId } = req.params;
+            const result = await service.getVideoMessages({ channelId });
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                data: result,
+                message: null,
+            })
+        } catch (e) {
+            return res.status(200).json({
+                statusCode: 400,
+                success: false,
+                data: null,
+                message: e.message,
+            })
+        }
 
     });
 };
