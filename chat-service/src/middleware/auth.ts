@@ -33,7 +33,11 @@ module.exports = (io:  Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsM
                     if (result.data.success) {
                         const channelIds = result.data.data.map(r => `${r.id}`);
                         debug.middleware("Load channelIds", JSON.stringify(channelIds));
-                        socket.join([...channelIds, "users/" + decoded.id]);
+                        const allChannelIds = [...channelIds, "users/" + decoded.id];
+                        socket.join(allChannelIds);
+
+                        // TODO: Add Consumer to api service
+                        // await consumer.subscribe({topics: allRoomIds, fromBeginning: true});
                     } else {
                         socket.emit("error", "Unable to load instance");
                     }

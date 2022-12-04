@@ -1,12 +1,13 @@
 import bcrypt from "bcryptjs";
 import { Express } from "express";
-import axios from "axios";
+import {IRedis} from "../../common/redis";
 const service = require("./users.service");
 const config = require("../../config");
 const debug = require("../../common/debugger");
 const Helpers = require("../../common/helpers");
 const middleware = require("../../middleware");
-const redis = require("../../data.storage");
+const redis: IRedis = require("../../common/redis").redisClient;
+const { producer } = require("../../common/kafka");
 
 module.exports = (app: Express) => {
     app.get("/admin/users/getAll", async (req, res) => {
@@ -289,30 +290,40 @@ module.exports = (app: Express) => {
             }
 
             // TODO: Save to redis with timeout
-            const code = Helpers.randomString();
-            redis.set(code, {
-               ...user,
-                email,
-                iat: (new Date()).getTime(),
-                exp: 3600 * 1000,
+            const type = "reset-password";
+            const resetPasswordKey = `${Helpers.toBase64(type)}.${Helpers.randomString()}`;
+            await redis.set(resetPasswordKey, email);
+
+            await producer.send({
+                topic: config.kafkaSettings.mailTopic,
+                key: "reset-password",
+                messages: [{
+                    value: JSON.stringify({
+                            type: "reset-password",
+                            data: {
+                                ...user,
+                                to: email,
+                                action: {
+                                    name: "reset-password-key",
+                                    desc: "make redis call expire after send email success",
+                                    key: resetPasswordKey,
+                                    value: 3600 * 2,
+                                },
+                                resetUrl: Helpers.getWebUrl() + `/reset-password?code=${resetPasswordKey}`,
+                                metadata: {
+                                    flowId: req.flowId,
+                                }
+                            }
+                        })
+                },]
             });
 
-            const requestMailServiceResult = await axios.post(config.service.mailServiceUrl + "/sendResetPasswordEmail", {
-                ...user,
-                to: email,
-                resetUrl: `http://localhost:4003/reset-password?code=${code}`,
+            return res.status(200).json({
+                success: true,
+                statusCode: 200,
+                data: "Gửi mail đặt lại mật khẩu thành công",
+                message: null,
             });
-            if (requestMailServiceResult.data.success) {
-                return res.status(200).json({
-                    success: true,
-                    statusCode: 200,
-                    data: "Gửi mail đặt lại mật khẩu thành công",
-                    message: null,
-                });
-            } else {
-                return res.status(200).json(...requestMailServiceResult.data);
-            }
-
         } catch (e) {
             return res.status(200).json({
                 success: false,
@@ -325,13 +336,14 @@ module.exports = (app: Express) => {
     app.post("/users/confirmResetPassword", async (req, res) => {
         const { password, confirmPassword, code } = req.body;
 
-        const user = redis.get(code);
-        if (Helpers.isNullOrEmpty(user)) {
+        const email = await redis.get(code);
+
+        if (Helpers.isNullOrEmpty(email)) {
             return res.status(200).json({
                 success: false,
                 statusCode: 400,
                 data: null,
-                message: "Không tìm thấy user cần cập nhật mật khẩu với code: " + code,
+                message: "Code không hợp lệ. Code: " + code,
             });
         }
 
@@ -354,8 +366,9 @@ module.exports = (app: Express) => {
 
         try {
             const passwordHash = await Helpers.hash(password);
-            const result = await service.changePassword({ hash: passwordHash, email: user.email });
+            const result = await service.changePassword({ hash: passwordHash, email: email });
             if (result) {
+                await redis.del(code);
                 return res.status(200).json({
                     success: true,
                     statusCode: 200,

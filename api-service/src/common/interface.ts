@@ -40,15 +40,6 @@ export interface IUser {
 }
 
 // JWT
-export interface ITokenPayload {
-    fullName?: string;
-    username?: string;
-    email?: string;
-    classId?: string;
-    courseId?: string;
-    role?: number;
-}
-
 export interface IAccount {
     accountVerified?: boolean,
     email: string,
@@ -61,4 +52,9 @@ export interface IAccount {
 
 export interface IMessageQueryParams {
     channelId: string;
+}
+
+export enum MailTemplate {
+    ResetPassword = "000001",
+    ActivateAccount = "000002",
 }

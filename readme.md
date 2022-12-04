@@ -39,6 +39,9 @@ $ npm run dev
 
 ## Reference links
 
+## Mail service
+- Send mail with nodemailer to google: https://dev.to/chandrapantachhetri/sending-emails-securely-using-node-js-nodemailer-smtp-gmail-and-oauth2-g3a
+
 ### Git
 - Login once: https://www.freecodecamp.org/news/how-to-fix-git-always-asking-for-user-credentials/
 
@@ -47,3 +50,25 @@ $ npm run dev
 
 ### Postgres
 - Explicit convert null timestamp value to use `extract` function: https://stackoverflow.com/questions/36325173/convert-timestamp-column-values-to-epoch-in-postgresql-select-query
+- LIKE without vietnamese accent: https://stackoverflow.com/questions/43293256/postgres-unaccent-for-character-with-more-than-1-diacritic
+- LIKE without vietnamese accent:
+  - https://stackoverflow.com/questions/43293256/postgres-unaccent-for-character-with-more-than-1-diacritic
+  - https://www.postgresql.org/docs/9.1/unaccent.html
+
+### Kafka
+- UI Tool: https://kafkatool.com/download.html
+- Offset explorer (kafka tool above): 
+  - Read data in string format: https://stackoverflow.com/questions/48543167/kafka-tool-can-show-the-actual-string-instead-of-the-regular-hexadecimal-format
+- Get started with Nodejs: https://developer.confluent.io/get-started/nodejs/
+- Kafka quickstart: https://developer.confluent.io/quickstart/kafka-docker/
+
+### Confluent Kakfa
+- Configuration: https://docs.confluent.io/platform/current/installation/docker/config-reference.html#required-confluent-ak-settings
+
+### IndexDB
+- https://www.freecodecamp.org/news/a-quick-but-complete-guide-to-indexeddb-25f030425501/
+- https://web.dev/indexeddb/
+- https://www.npmjs.com/package/idb#wrap
+
+### Express
+- Extend Typescript object: https://stackoverflow.com/questions/37377731/extend-express-request-object-using-typescript

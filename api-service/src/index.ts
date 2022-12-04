@@ -7,7 +7,8 @@ import cors from "cors";
 
 const debug = require("./common/debugger");
 const { server: serverConfig } = require("./config");
-const redisClient = require("./common/redis").redisClient;
+const Helpers = require("./common/helpers");
+const redis = require("./common/redis").redisClient;
 
 const app: Express = express();
 
@@ -28,6 +29,39 @@ app.get("/", async (req, res) => {
  console.log(req.headers["user-agent"]);
  res.json("Ok");
 })
+app.use((req, res, next) => {
+ // @ts-ignore
+ req.flowID = Helpers.randomString(16);
+ next();
+})
+app.get("/validate-code/:code", async (req, res) => {
+ const code = req.params.code;
+ console.log(code);
+ if (Helpers.isNullOrEmpty(code)) {
+  return res.status(200).json({
+   success: false,
+   statusCode: 400,
+   message: "Không có code",
+   data: null,
+  });
+ }
+
+ const isExisted = !!(await redis.get(code));
+ if (isExisted) {
+  return res.status(200).json({
+   success: true,
+   statusCode: 200,
+   message: null,
+   data: true,
+  });
+ } else {
+  return res.status(200).json({
+   success: false,
+   message: null,
+   data: false,
+  });
+ }
+});
 require("./features/auth")(app);
 require("./features/friends")(app);
 require("./features/invitations")(app);
@@ -38,7 +72,9 @@ require("./features/channel-types")(app);
 require("./features/messages")(app);
 
 require("./common/redis").redisInit().then(() => {
- app.listen(serverConfig.PORT, function(){
-  debug.api("LISTEN", `Listening at ${serverConfig.PORT}`);
+ require("./common/kafka").init().then(() => {
+      app.listen(serverConfig.PORT, function(){
+       debug.api("LISTEN", `Listening at ${serverConfig.PORT}`);
+      });
  });
 });

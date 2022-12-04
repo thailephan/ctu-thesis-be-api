@@ -6,4 +6,5 @@ module.exports = {
     email_address: process.env.OAUTH_GG_EMAIL,
     email_password: process.env.OAUTH_GG_EMAIL_PASSWORD,
     smtp_domain: process.env.GG_SMTP_DOMAIN,
+    smtp_port: process.env.GG_SMTP_PORT,
 }

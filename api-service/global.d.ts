@@ -3,3 +3,10 @@
 //         user: any;
 //     }
 // }
+
+declare namespace Express {
+    export interface Request {
+        flowId?: string;
+        user?: any;
+    }
+}

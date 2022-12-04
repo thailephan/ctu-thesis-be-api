@@ -19,4 +19,5 @@ module.exports = {
     kafka: bug("KAFKA"),
     api: bug("API"),
     helper: bug("HELPER"),
+    debugger: bug,
 }

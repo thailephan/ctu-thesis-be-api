@@ -1,5 +1,13 @@
 const debug = require("./debugger");
-
+const config = require("../config");
+const getLog = ({
+                    type, errorMessage, request, executedFunction, data
+                }) => {
+    return {
+        executedFunction,
+        type, error: { message: errorMessage, }, request, header: { }, data
+    }
+}
 const Helpers = {
     extractSort(sortStr) {
         if (Helpers.isNullOrEmpty(sortStr)) {
@@ -66,7 +74,20 @@ const Helpers = {
     },
     isPhoneNumber: (input) => {
        return String(input).toLowerCase().match(/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[\./0-9]*$/i);
-    }
+    },
+    getLog,
+    getKafkaLog: ({messages, key = config.settings.logMessageKey, topic = config.settings.logTopic}) => {
+        return {
+            topic,
+            messages: messages.map(m => ({
+                key: m.key || key || undefined,
+                value: JSON.stringify({...messages, loggerId: config.settings.clientId})
+            }))
+        }
+    },
+    randomString: (size = 8) => {
+        return require("crypto").randomBytes(size).toString("hex");
+    },
 }
 
 module.exports = Helpers;

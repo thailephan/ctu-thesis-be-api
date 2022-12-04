@@ -22,12 +22,18 @@ module.exports = {
         const result = await db.query(sql, params);
         return result.rows[0];
     },
+    async createAccountMustActivate(account: IAccount) {
+        const {fullName, email, hash, registerTypeId} = account;
+        const params = [fullName, email, hash, registerTypeId];
+        let sql = 'insert into users("fullName", "email", "hash", "registerTypeId", status) values($1, $2, $3, $4, 0)';
+        const result = await db.query(sql, params);
+        return result.rows[0];
+    },
     async createAccount(account: IAccount) {
         const {fullName, email, hash, registerTypeId} = account;
         const params = [fullName, email, hash, registerTypeId];
         let sql = 'insert into users("fullName", "email", "hash", "registerTypeId") values($1, $2, $3, $4)';
         const result = await db.query(sql, params);
-        console.log(result);
         return result.rows[0];
     },
     async addUserDevice(deviceData: { id: number, userAgent: string, platform: string | null, subscribeGroupId: string }) {
@@ -35,5 +41,10 @@ module.exports = {
        const sql = `insert into devices(platform, "userAgent", "createdAt", "updatedAt", "userId", "subscribeGroupId") VALUES ($1, $2, now(), now(), $3, $4) returning *`;
        const params = [deviceData.platform, deviceData.userAgent, deviceData.id, deviceData.subscribeGroupId];
        return (await db.query(sql, params)).rows[0];
-    }
+    },
+    async getActivateAccountMailTemplate() {
+        const sql = `select * from mailTemplate where code = '000001'`;
+        const result = await db.query(sql);
+        return result.rows[0];
+    },
 }

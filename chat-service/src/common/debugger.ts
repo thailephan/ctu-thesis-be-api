@@ -7,7 +7,7 @@ type DEBUG_LEVEL = "INFO" | "ERROR" | "WARN";
 
 function bug(type: string) {
     return function (f: any, message: any, level: DEBUG_LEVEL = "INFO") {
-        debug(`${config.server.NAME} | ${type} | ${level} | ${f} |`)(`${format(new Date(), "dd-MM-yyyy HH:mm")} | ${JSON.stringify(message)}`);
+        debug(`${config.server.NAME} | ${type?.toUpperCase()} | ${level?.toUpperCase()} | ${f} |`)(`${format(new Date(), "dd-MM-yyyy HH:mm")} | ${JSON.stringify(message)}`);
     };
 }
 

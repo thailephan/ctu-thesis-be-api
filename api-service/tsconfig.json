@@ -4,12 +4,14 @@
     "esModuleInterop": true,
     "target": "es6",
     "moduleResolution": "node",
-    "outDir": "dist"
+    "outDir": "dist",
+    "typeRoots": ["./global.d.ts", "./node_modules/@types"]
   },
   "lib": ["es2015"],
+  "files": ["./global.d.ts"],
   "exclude": [
     "./tests",
     "./node_modules",
-    "./dist",
+    "./dist"
   ]
 }

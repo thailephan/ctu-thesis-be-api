@@ -41,6 +41,25 @@ module.exports = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMa
             } else {
                 socket.emit("chat/message/send/error", result.data.message);
             }
+
+            // await producer.send({
+            //     // TOOD: Add to .env
+            //     topic: "api-service",
+            //     messages: [{
+            //         key: socket.currentUser.id.toString(),
+            //         value: JSON.stringify({
+            //             path: "/messages",
+            //             method: "post",
+            //             data: newMessage,
+            //             emitterId: socket.currentUser.id,
+            //             emitterAccessToken: socket.accessToken,
+            //             response: {
+            //                 topic: channelId.toString(),
+            //                 event: "chat/message/send",
+            //             }
+            //         }),
+            //     }]
+            // })
         }
     });
     // Xử lý status của message

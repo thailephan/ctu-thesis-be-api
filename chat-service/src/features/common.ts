@@ -9,13 +9,22 @@ module.exports = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMa
     const userId = socket.currentUser.id.toString();
     const deviceId = socket.currentUser.deviceId.toString() || "1";
 
+    redis.get(`users/online/${userId}`).then(async v => {
+        const numberOfDeviceConnection = parseInt(v || "0") + 1;
+        await redis.set(`users/online/${userId}`, numberOfDeviceConnection);
+    });
+
     socket.on("ping", () => {
         console.log("client ping");
         socket.emit("pong");
     });
     /* Common event */
     socket.on('disconnect', async function (reason) {
-        console.log('socket disconnect...', socket.id, reason)
+        console.log('socket disconnect...', socket.id, reason);
+        const numberOfDeviceConnection = parseInt(await redis.get(`users/online/${userId}`) || "0") - 1;
+        if (numberOfDeviceConnection >= 0) {
+            await redis.set(`users/online/${userId}`, numberOfDeviceConnection);
+        }
     });
     // When disconnect
     socket.on('disconnecting', async function (reason) {

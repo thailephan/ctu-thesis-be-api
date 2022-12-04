@@ -3,7 +3,6 @@ require("dotenv").config();
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { ITokenPayload } from "./interface";
 
 const debug = require("../common/debugger");
 const config = require("../config");
@@ -110,8 +109,17 @@ const Helpers = {
        return String(input).toLowerCase().match(/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[\./0-9]*$/i);
     },
     randomString: (size: number = 8) => {
-       return require("crypto").randomBytes(size).toString("hex");
-    }
+        return require("crypto").randomBytes(size).toString("hex");
+    },
+    getWebUrl: () => {
+        return config.service.webServiceUrl;
+    },
+    toBase64: (input: string) => {
+        return Buffer.from(input).toString("base64");
+    },
+    toStringFromBase64: (input: string) => {
+        return Buffer.from(input, 'base64').toString('ascii');
+    },
 }
 
 module.exports = Helpers;

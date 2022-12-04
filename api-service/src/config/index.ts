@@ -6,4 +6,5 @@ module.exports = {
    token: require("./token.config"),
    oauth_google: require("./oauth-google.config"),
    service: require("./service.config"),
+   kafkaSettings: require("./kafka.config"),
 }

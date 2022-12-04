@@ -4,6 +4,7 @@ import {RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, Redi
 import {AxiosInstance} from "axios";
 
 export interface OverrideSocket extends Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>{
+    deviceId?: string;
     currentUser?: any;
     accessToken?: string;
 }

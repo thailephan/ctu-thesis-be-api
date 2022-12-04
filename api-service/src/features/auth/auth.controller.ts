@@ -1,4 +1,4 @@
-import {ITokenPayload} from "../../common/interface";
+import {MailTemplate} from "../../common/interface";
 
 export {}
 import { Express } from "express";
@@ -8,9 +8,10 @@ const debug = require("../../common/debugger");
 const middleware = require("../../middleware");
 const service = require('./auth.service');
 const constants = require("../../common/constants");
-const redisClient = require("../../common/redis").redisClient;
+const redis = require("../../common/redis").redisClient;
+const producer = require("../../common/kafka").producer;
+const config = require("../../config");
 
-const GOOGLE_REGISTER_TYPE_ID = 2;
 module.exports = (app: Express) => {
     app.post("/auth/verifyToken", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
@@ -125,6 +126,100 @@ module.exports = (app: Express) => {
             });
         }
     });
+    app.post("/auth/registerMustActivate", async (req, res) => {
+        const {fullName, password, email} = req.body;
+        if (Helpers.isNullOrEmpty(email)) {
+            debug.api("POST auth/registerMustActivate | isNullOrEmpty(email)", `${email} not found`, "ERROR");
+            return res.status(200).json({
+                success: false,
+                message: "Không tìm thấy email",
+                data: null,
+            });
+        }
+        if (!Helpers.isEmail(email)) {
+            debug.api("POST auth/registerMustActivate | isEmail(email)", `${email} has wrong format`, "ERROR");
+            return res.status(200).json({
+                success: false,
+                data: null,
+                message: "Email chưa đùng định dạng",
+                enMessage: `wrong email format. regexp: ${String(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)}`,
+            });
+        }
+        if (Helpers.isNullOrEmpty(password)) {
+            debug.api("POST auth/registerMustActivate | isNullOrEmpty(password)", `${password} is empty`, "ERROR");
+            return res.status(200).json({
+                success: false,
+                data: null,
+                message: "Mật khẩu không được dể trống",
+            });
+        }
+        const account = await service.getAccountByEmail(email);
+
+        await producer.send({
+            topic: config.kafkaSettings.mailTopic,
+            key: MailTemplate.ResetPassword,
+            messages: [{
+                value: JSON.stringify({
+                    type: MailTemplate.ResetPassword,
+                    data: {
+                        to: email,
+                        metadata: {
+                            flowId: req.flowId,
+                        }
+                    }
+                })
+            },]
+        });
+
+        if (!Helpers.isNullOrEmpty(account)) {
+            debug.api("POST auth/registerMustActivate | isNullOrEmpty(getAccountByEmail(email))", `${email} has registered`, "ERROR");
+            if (account.status === 0) {
+                return res.status(200).json({
+                    statusCode: 400,
+                    success: false,
+                    data: null,
+                    message: "Email đã được đăng ký. Vui lòng kiểm tra mail để kích hoạt tài khoản",
+                });
+            }
+            return res.status(200).json({
+                statusCode: 400,
+                success: false,
+                data: null,
+                message: "Email đã được đăng ký.",
+            });
+        }
+
+        const hash = await Helpers.hash(password);
+        const default_account: any = {
+            fullName,
+            email,
+            hash,
+            registerTypeId: 1,
+        };
+        try {
+            // create account with username and password
+            await service.createAccountMustActivate(default_account);
+            // TODO: Send Email to validate account
+            debug.api("POST auth/registerMustActivate | isNullOrEmpty(getAccountByEmail(email))", `${JSON.stringify(default_account)} has created`);
+            // return success with login token
+            return res.status(200).json({
+                success: true,
+                data: null,
+                message: null,
+                statusCode: 200,
+            });
+        } catch (e) {
+            let message = e.message;
+
+            debug.api("POST auth/registerMustActivate | isNullOrEmpty(getAccountByEmail(email))", `${JSON.stringify(default_account)} failed to create`, "ERROR");
+            return res.status(200).json({
+                success: false,
+                data: null,
+                statusCode: 400,
+                message: message,
+            });
+        }
+    });
 
     // Username / password login
     app.post("/auth/login", async (req, res) => {
@@ -179,8 +274,7 @@ module.exports = (app: Express) => {
         account.deviceId = addUserLoginDevice?.id || "Empty";
         account.subscribeGroupId = subscribeGroupId;
 
-        const payload: ITokenPayload = account;
-        const accessToken = Helpers.generateToken(payload);
+        const accessToken = Helpers.generateToken(account);
 
         debug.api("POST /auth/login", `Login success with token: ${accessToken}`, "INFO");
         return res.status(200).json({
@@ -225,10 +319,9 @@ module.exports = (app: Express) => {
 
         account.deviceId = addUserLoginDevice?.id || "Empty";
         account.subscribeGroupId = subscribeGroupId;
-        const payload: ITokenPayload = account;
-        const accessToken = Helpers.generateToken(payload);
+        const accessToken = Helpers.generateToken(account);
 
-        await redisClient.sAdd(`users/device/${account.id}`, account.deviceId);
+        await redis.sAdd(`users/device/${account.id}`, account.deviceId);
 
         debug.api("POST /auth/login", `Login success with token: ${accessToken}`, "INFO");
         return res.status(200).json({

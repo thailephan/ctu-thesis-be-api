@@ -3,7 +3,7 @@ const debug = require("debug");
 
 function bug(type) {
     return function (f, message, level) {
-        debug(`API-SERVICE| ${type} | ${level} | ${f} |`)(`${format(new Date(), "dd-MM-yyyy HH:mm")} | ${JSON.stringify(message)}`);
+        debug(`MAIL-SERVICE: ${type} | ${level} | ${f} |`)(`${format(new Date(), "dd-MM-yyyy HH:mm")} | ${JSON.stringify(message)}`);
     };
 }
 

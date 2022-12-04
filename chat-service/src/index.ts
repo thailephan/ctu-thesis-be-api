@@ -67,15 +67,6 @@ init()
             //
             // }
 
-            // todo: user login => online
-            // todo: user close app (disconnect) => offline
-            // todo: user close browser (disconnect) => offline
-            // todo: user signout/logout => offline
-            const userId = socket.currentUser.id.toString();
-            const deviceId = socket.currentUser.deviceId.toString();
-            await redisClient.sAdd(`users/online/${userId}`, deviceId);
-            // await redisClient.lSet("users/device/online", userId, deviceId);
-            // const data =  await redis.
             /* COMMON */
             require("./features/common")(io, socket, api, redisClient);
             /* USER */

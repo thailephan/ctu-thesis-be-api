@@ -20,6 +20,7 @@
     "debug": "^4.3.4",
     "dotenv": "^16.0.3",
     "jsonwebtoken": "^8.5.1",
+    "kafkajs": "^2.2.3",
     "redis": "^4.5.1",
     "socket.io": "^4.5.2",
     "winston": "^3.8.2"
