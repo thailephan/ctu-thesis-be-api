@@ -97,8 +97,26 @@ module.exports = (app: Express, firebase: any) => {
             });
         }
     });
+    app.get("/users/getUserById/:id", middleware.verifyToken, async (req, res) => {
+        const { id } = req.params;
+        try {
+            const result = await service.getUserInformation(id);
+            return res.status(200).json({
+                statusCode: 200,
+                success: true,
+                data: result,
+                message: null,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                statusCode: 400,
+                success: false,
+                data: null,
+                message: e.message,
+            });
+        }
+    });
     // TODO: Unlock user account
-
     app.get("/users/userInformation", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const { id = "" } =  req.user;
