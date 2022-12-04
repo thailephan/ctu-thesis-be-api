@@ -94,12 +94,12 @@ module.exports = (app: Express) => {
         }
     });
     app.get("/channels/search", middleware.verifyToken , async (req, res) => {
-        const { searchText = "", pageSize = Constants.PAGE_LIMIT} = req.query;
+        const { searchText = "", pageSize = Constants.PAGE_LIMIT, channelId = 0} = req.query;
         // @ts-ignore
         const id = req.user.id;
 
         try {
-            const channels = await service.searchChannels({userId: id, searchText, pageSize});
+            const channels = await service.searchChannels({userId: id, searchText, pageSize, channelId});
 
             return res.status(200).json({
                 message: null,

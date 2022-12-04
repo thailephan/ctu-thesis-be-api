@@ -132,8 +132,8 @@ const getAll = async (args?: { channelTypeId?: number }) => {
 //         return channel;
 //     })));
 // }
-const getAllByUserId = async (args?: {id: number, channelTypeId?: number, searchText?: string, pageSize?: number}) => {
-    const {id, channelTypeId, searchText = "", pageSize} = args || {};
+const getAllByUserId = async (args?: {id: number, channelTypeId?: number, searchText?: string, pageSize?: number, channelId?: number}) => {
+    const {id, channelTypeId, searchText = "", pageSize, channelId} = args || {};
     const params: any = [id];
     let sql = `with channelWithType as (
     select distinct channels.id,
@@ -200,12 +200,15 @@ where  friends.status = 1 and "typeId" = 1
     `;
     params.push(`%${searchText}%`);
     sql += ` where lower("channelName") LIKE lower($${params.length})`;
+    if (channelId) {
+        params.push(channelId);
+        sql += ` and c.id = $${params.length}`;
+    }
     if (channelTypeId) {
         params.push(channelTypeId);
         sql += ` and c."typeId" = $${params.length}`;
     }
     const result = await db.query(sql, params);
-    console.log(sql, result);
     return (await (Promise.all(result.rows.map(async (channel: any) => {
         const message = (await client.execute(`select
                                                          "channelId", id,
@@ -217,7 +220,6 @@ where  friends.status = 1 and "typeId" = 1
                                                          "replyForId"
     from messagesByChannels where "channelId" = ? and status = 1 limit 1;`, [ channel.id ], {prepare: true})).rows[0] || null
         if (message !== null) {
-            console.log(message);
             channel.lastMessage = {...message, createdAt: message.createdAt.low};
         } else {
             channel.lastMessage = null;
@@ -388,11 +390,12 @@ module.exports = {
         const result = await db.query(membersSql, params);
         return result.rows;
     },
-    searchChannels: async ({ userId, searchText, pageSize }) => {
+    searchChannels: async ({ userId, searchText, pageSize, channelId }) => {
         return await getAllByUserId({
             searchText,
             pageSize,
             id: userId,
+            channelId,
         });
     },
     getAllFriendChannels: async (id: number) => {
