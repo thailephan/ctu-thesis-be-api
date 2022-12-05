@@ -13,9 +13,7 @@ module.exports = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMa
         const user = socket.currentUser;
         try {
             const result = await service.api.post("/users/updateAvatar", {
-                data: {
-                    avatarUrl,
-                },
+                avatarUrl,
             });
             if (result.data.success) {
                 io.to(`users/${user.id}`).emit("user/updateAvatar", { avatarUrl });

@@ -16,10 +16,10 @@ const admin = kafka.admin();
 const producer = kafka.producer({ createPartitioner: Partitioners.DefaultPartitioner });
 
 
-const typeToAPI = new Map([["000001", {
+const typeToAPI = new Map([["000002", {
     path: "/sendActivateEmailAccount",
     method: "post",
-}], ["000002", {
+}], ["000001", {
     path: "/sendResetPasswordEmail",
     method: "post",
 }]]);

@@ -63,7 +63,10 @@ app.get("/activate-account", (req, res) => {
 })
 
 app.post("/sendResetPasswordEmail", async (req, res) => {
-    const {to, fullName, resetUrl, action} = req.body;
+    const { to, fullName, id } = req.body;
+    const random = Helpers.randomString();
+    const code = "000001." + random;
+    const resetUrl = config.service.webServiceUrl + `/reset-password?code=${code}`;
 
     // 'to' may be come from user email (required email for all account)
     ejs.renderFile(__dirname + '/email-template/reset-password.template.ejs', { resetUrl, fullName }, async (err, data) => {
@@ -94,8 +97,50 @@ app.post("/sendResetPasswordEmail", async (req, res) => {
             from: config.oauth_google.email_address,
             to,
     }), "INFO");
-    return utils._sendMailHandler({ mailOptions, res, req }).then(async () => {
-            await redisClient.expire(action.key, action.value);
+        await producer.send(helpers.getKafkaLog({
+            messages: [helpers.getLog({
+                type: "info",
+                data: {
+                    fullName, resetUrl, to
+                },
+                request: {
+                    query: req.query, params: req.params, body: req.body,
+                },
+                executedFunction: "POST sendResetPassword Email | renderFile ",
+            })]
+        }));
+        return utils._sendMailHandler({ mailOptions, res, req }).then(async () => {
+        const template = await db.query(`select * from mailTemplate where code = '000001'`);
+        const templateExpireTime = template.rows[0]?.expireIn || 0;
+        await redisClient.set(code, to);
+        await redisClient.expire(code, templateExpireTime);
+        const addEmailSend = (await db.query(`insert into mailing("templateId", "to", data, "createdBy", random) values ($1, $2, $3, $4, $5) returning *`, [template.id, to, to, id, random])).rows[0];
+        debug.db("_sendMailHandler", `Query insert mailling: ${JSON.stringify(addEmailSend)}`, "INFO");
+
+        // Logging kafka
+        if (addEmailSend) {
+            await producer.send(helpers.getKafkaLog({
+                messages: [helpers.getLog({
+                    type: "info",
+                    data: addEmailSend,
+                    request: {
+                        query: req.query, params: req.params, body: req.body,
+                    },
+                    executedFunction: "POST sendResetPassword Email | _sendMailHandler | db.query",
+                })]
+            }));
+        } else {
+            await producer.send(helpers.getKafkaLog({
+                messages: [helpers.getLog({
+                    type: "error",
+                    errorMessage: "Cannot insert new mailing",
+                    request: {
+                        query: req.query, params: req.params, body: req.body,
+                    },
+                    executedFunction: "POST sendResetPassword Email | _sendMailHandler | db.query",
+                })]
+            }));
+        }
     });
     });
 })

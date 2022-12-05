@@ -221,7 +221,7 @@ module.exports = (app: Express) => {
                     success: false,
                     data: null,
                     statusCode: 400,
-                    message: "Mật khẩu cũ không đúng",
+                    message: "Mật khẩu cũ không chính xác",
                 });
             }
 
@@ -290,26 +290,17 @@ module.exports = (app: Express) => {
             }
 
             // TODO: Save to redis with timeout
-            const type = "reset-password";
-            const resetPasswordKey = `${Helpers.toBase64(type)}.${Helpers.randomString()}`;
-            await redis.set(resetPasswordKey, email);
+            const type = "000001";
 
             await producer.send({
                 topic: config.kafkaSettings.mailTopic,
-                key: "reset-password",
+                key: type,
                 messages: [{
                     value: JSON.stringify({
-                            type: "reset-password",
+                            type,
                             data: {
                                 ...user,
                                 to: email,
-                                action: {
-                                    name: "reset-password-key",
-                                    desc: "make redis call expire after send email success",
-                                    key: resetPasswordKey,
-                                    value: 3600 * 2,
-                                },
-                                resetUrl: Helpers.getWebUrl() + `/reset-password?code=${resetPasswordKey}`,
                                 metadata: {
                                     flowId: req.flowId,
                                 }

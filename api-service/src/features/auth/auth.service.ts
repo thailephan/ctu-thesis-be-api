@@ -42,9 +42,4 @@ module.exports = {
        const params = [deviceData.platform, deviceData.userAgent, deviceData.id, deviceData.subscribeGroupId];
        return (await db.query(sql, params)).rows[0];
     },
-    async getActivateAccountMailTemplate() {
-        const sql = `select * from mailTemplate where code = '000001'`;
-        const result = await db.query(sql);
-        return result.rows[0];
-    },
 }

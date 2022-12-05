@@ -31,7 +31,7 @@ app.get("/", async (req, res) => {
 })
 app.use((req, res, next) => {
  // @ts-ignore
- req.flowID = Helpers.randomString(16);
+ req.flowId = Helpers.randomString(16);
  next();
 })
 app.get("/validate-code/:code", async (req, res) => {

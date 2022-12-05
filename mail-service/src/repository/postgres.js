@@ -1,4 +1,4 @@
-import {Pool} from 'pg';
+const {Pool} = require('pg');
 const debug = require("../common/debugger");
 
 const dbConfig = {
@@ -13,6 +13,12 @@ const pool = new Pool(dbConfig).on("error", err => {
 });
 
 module.exports = {
+    /**
+    * Execute query from postgres database
+    * @params {string} text
+    * @params {Array<any>} params
+    * @returns  {Promise<QueryResult<any>>}
+    * */
     async query(text, params) {
         const start = Date.now();
         const res = await pool.query(text, params);

@@ -66,7 +66,7 @@ module.exports = {
         return result.rows[0];
     },
     updateUserAvatar: async ({id, avatarUrl}: any) => {
-        const sql = `update users set "avatarUrl" = $2 , "createdAt" = now() where id = $1`;
+        const sql = `update users set "avatarUrl" = $2 , "updatedAt" = now() where id = $1`;
         const params = [id, avatarUrl];
         const result = await db.query(sql, params);
         return result.rows[0];
