@@ -6,7 +6,11 @@
 
 declare namespace Express {
     export interface Request {
-        flowId?: string;
-        user?: any;
+        metadata?: {
+            ua?: string;
+            ip?: string;
+            flowId?: string;
+            user?: any;
+        }
     }
 }

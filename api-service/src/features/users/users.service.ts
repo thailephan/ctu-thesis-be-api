@@ -135,7 +135,7 @@ case ((friends."userId2" = $1 and friends."userId1" = id) or (friends."userId2" 
         return (await db.query(sql, [userId, `%${searchText}%`])).rows;
     },
     getUserByEmail: async ({email}) => {
-        const sql = `select id, "fullName", email
+        const sql = `select id, "fullName", email, status
                      from users
                      where email = $1
                      limit 1`;
@@ -146,5 +146,13 @@ case ((friends."userId2" = $1 and friends."userId1" = id) or (friends."userId2" 
                      set hash = $1
                      where email = $2 returning id, "fullName", email`;
         return (await db.query(sql, [hash, email])).rows[0];
+    },
+    getMailByRandom: async (random: string) => {
+       const sql = `select * from mailling where random = $1`;
+       return (await db.query(sql, [random])).rows[0];
+    },
+    activateUser: async ( { email }) => {
+        const sql = `update users set status = 1 where email = $1`;
+        return (await db.query(sql, [email])).rows[0];
     }
 };

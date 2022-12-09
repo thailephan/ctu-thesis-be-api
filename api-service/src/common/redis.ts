@@ -4,7 +4,9 @@ export interface IRedis extends  RedisClientType<RedisDefaultModules & RedisModu
 
 const redisClient: IRedis = createClient();
 
-module.exports.redisInit = async function() {
-    await redisClient.connect();
+module.exports = {
+    redis: redisClient,
+    redisInit: async function() {
+        await redisClient.connect();
+    }
 };
-module.exports.redisClient = redisClient;

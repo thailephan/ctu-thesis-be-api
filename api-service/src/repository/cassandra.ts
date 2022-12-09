@@ -1,5 +1,4 @@
-import cassandra from "cassandra-driver";
-
+const cassandra = require("cassandra-driver");
 const debug = require("../common/debugger");
 const PlainTextAuthProvider = cassandra.auth.PlainTextAuthProvider;
 const contactPoints = [process.env.NODE_ENV === "development_local" ? "127.0.0.1:9042" : `${process.env.POSTGRES_HOST}:9042`];

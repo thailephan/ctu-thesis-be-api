@@ -7,4 +7,5 @@ module.exports = {
    oauth_google: require("./oauth-google.config"),
    service: require("./service.config"),
    kafkaSettings: require("./kafka.config"),
+   settings: require("./kafka.config"),
 }

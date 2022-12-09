@@ -52,6 +52,7 @@ export interface IAccount {
 
 export interface IMessageQueryParams {
     channelId: string;
+    userId: any;
 }
 
 export enum MailTemplate {

@@ -1,12 +1,12 @@
 import bcrypt from "bcryptjs";
 import { Express } from "express";
-import {IRedis} from "../../common/redis";
+import {MailTemplate} from "../../common/interface";
 const service = require("./users.service");
 const config = require("../../config");
 const debug = require("../../common/debugger");
 const Helpers = require("../../common/helpers");
 const middleware = require("../../middleware");
-const redis: IRedis = require("../../common/redis").redisClient;
+const { redis } = require("../../common/redis");
 const { producer } = require("../../common/kafka");
 
 module.exports = (app: Express) => {
@@ -102,6 +102,12 @@ module.exports = (app: Express) => {
         const { id } = req.params;
         try {
             const result = await service.getUserInformation(id);
+            if (result?.email && await redis.get(`/users/online/${result.email}`)) {
+               result.isOnline = true;
+            } else {
+               result.isOnline = true;
+            }
+
             return res.status(200).json({
                 statusCode: 200,
                 success: true,
@@ -289,25 +295,18 @@ module.exports = (app: Express) => {
                 });
             }
 
-            // TODO: Save to redis with timeout
-            const type = "000001";
-
-            await producer.send({
-                topic: config.kafkaSettings.mailTopic,
-                key: type,
+            await producer.send(Helpers.getKafkaEventToMail(req, {
+                key: MailTemplate.ResetPassword,
                 messages: [{
-                    value: JSON.stringify({
-                            type,
-                            data: {
-                                ...user,
-                                to: email,
-                                metadata: {
-                                    flowId: req.flowId,
-                                }
-                            }
-                        })
+                    value: {
+                        type: MailTemplate.ResetPassword,
+                        data: {
+                            to: email,
+                            fullName: user.fullName,
+                        }
+                    }
                 },]
-            });
+            }));
 
             return res.status(200).json({
                 success: true,
@@ -384,6 +383,54 @@ module.exports = (app: Express) => {
         }
     });
     app.post("/users/activateAccount", async (req, res) => {
-        // TODO: Post
+        const  { code = "" } = req.body;
+
+        if (!code) {
+            return res.status(200).json({
+                success: false,
+                message: "Không có code",
+                data: null,
+            });
+        }
+        try {
+            const [ type, random ] = code.split(".");
+
+            const email = await redis.get(code);
+            let mail: any = null;
+            if (email) {
+                mail = email;
+            } else {
+                mail = (await service.getMailByRandom(random)).to;
+            }
+
+            const user = await service.getUserByEmail({ email: mail });
+            if (!user) {
+                return res.status(200).json({
+                    success: false,
+                    message: "Người dùng không tồn tại",
+                    data: null,
+                });
+            } else if (user.status === 1) {
+                return res.status(200).json({
+                    success: false,
+                    message: "Tài khoản đã được kích hoạt rồi",
+                    data: null,
+                });
+            } else {
+                await service.activateUser({ email });
+                await redis.del(code);
+                return res.status(200).json({
+                    success: true,
+                    message: null,
+                    data: null,
+                });
+            }
+        } catch (e) {
+            return res.status(200).json({
+                success: false,
+                message: e.message,
+                data: null,
+            });
+        }
     });
 };

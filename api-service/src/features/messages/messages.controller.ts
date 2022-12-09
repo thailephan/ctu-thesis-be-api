@@ -6,8 +6,11 @@ const middleware = require("../../middleware");
 
 module.exports = (app: Express) => {
     app.get("/channels/:id/messages/getAll", middleware.verifyToken, async (req,res) => {
+        // @ts-ignore
+        const userId = req.user.id;
         const { id: channelId } = req.params;
-        const messages = await service.getAll({channelId});
+
+        const messages = await service.getAll({channelId, userId});
 
         return res.status(200).json({
             data: messages,
@@ -51,7 +54,6 @@ module.exports = (app: Express) => {
         try {
             // Save to database
             const newMessage = await service.createMessage({ channelId, messageTypeId, message, replyForId, createdBy });
-            await service.createUserReadForMesasge( { messageId: newMessage.id, channelId, createdBy: senderId });
 
             if (newMessage) {
                 if (typeof newMessage.createdAt === "string") {
@@ -77,7 +79,7 @@ module.exports = (app: Express) => {
     // TODO: Search message
 
     // TODO: Remove message (change status to -1)
-    app.post("/messages/delete", async (req, res) => {
+    app.post("/messages/delete", middleware.verifyToken, async (req, res) => {
         const { messageId, channelId } = req.body;
 
         if (Helpers.isNullOrEmpty(messageId)) {
@@ -111,7 +113,7 @@ module.exports = (app: Express) => {
         }
     });
 
-    app.post("/messages/seen", async (req, res) => {
+    app.post("/messages/seen", middleware.verifyToken, async (req, res) => {
         // @ts-ignore
         const senderId = req.user.id;
         const { messageId, channelId } = req.body;
@@ -132,10 +134,10 @@ module.exports = (app: Express) => {
         }
 
         try {
-            await service.updateUserReadMessage({ senderId, messageId, channelId });
+            const result = await service.updateMessageSeen({ userId: senderId, messageId, channelId });
             return res.status(200).json({
                 success: true,
-                data: null,
+                data: {...result, channelId},
                 message: null,
             });
         } catch (e) {
@@ -145,5 +147,41 @@ module.exports = (app: Express) => {
                message: e.message,
            })
         }
+    });
+    app.post("/messages/received", middleware.verifyToken, async (req, res) => {
+        // @ts-ignore
+       const userId = req.user.id;
+       const { channelId, messageId } = req.body;
+
+        if (Helpers.isNullOrEmpty(messageId)) {
+            return res.status(200).json({
+                data: null,
+                success: false,
+                message: "'messageId' không được để trống",
+            });
+        }
+        if (Helpers.isNullOrEmpty(channelId)) {
+            return res.status(200).json({
+                data: null,
+                success: false,
+                message: "'channelId' không được để trống",
+            });
+        }
+
+        try {
+           const result = await service.updateMessageReceived({ channelId, messageId, userId });
+
+           return res.status(200).json({
+               success: true,
+               data: {...result, channelId},
+               message: null,
+           })
+       } catch (e) {
+           return res.status(200).json({
+               success: false,
+               data: null,
+               message: e.message,
+           })
+       }
     });
 };

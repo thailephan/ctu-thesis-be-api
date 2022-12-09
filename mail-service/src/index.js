@@ -13,7 +13,7 @@ const { kafkaInit, producer } = require("./common/kafka");
 const helpers = require("./common/helpers");
 const db = require("./repository/postgres");
 
-const redisClient = require("./common/redis").redisClient;
+const { redis } = require("./common/redis");
 const app = express();
 
 app.use(cors());
@@ -106,14 +106,14 @@ app.post("/sendResetPasswordEmail", async (req, res) => {
                 request: {
                     query: req.query, params: req.params, body: req.body,
                 },
-                executedFunction: "POST sendResetPassword Email | renderFile ",
+                executedFunction: "POST sendResetPasswordEmail | renderFile ",
             })]
         }));
         return utils._sendMailHandler({ mailOptions, res, req }).then(async () => {
         const template = await db.query(`select * from mailTemplate where code = '000001'`);
         const templateExpireTime = template.rows[0]?.expireIn || 0;
-        await redisClient.set(code, to);
-        await redisClient.expire(code, templateExpireTime);
+        await redis.set(code, to);
+        await redis.expire(code, templateExpireTime);
         const addEmailSend = (await db.query(`insert into mailing("templateId", "to", data, "createdBy", random) values ($1, $2, $3, $4, $5) returning *`, [template.id, to, to, id, random])).rows[0];
         debug.db("_sendMailHandler", `Query insert mailling: ${JSON.stringify(addEmailSend)}`, "INFO");
 
@@ -146,18 +146,11 @@ app.post("/sendResetPasswordEmail", async (req, res) => {
 })
 
 app.post("/sendActivateEmailAccount", async (req, res) => {
-    const { to, fullName, activateUrl } = req.body;
-    // 'to' may be come from user email (required email for all account)
-    const sql = `select mailTemplate.*, name "typeName"  from mailTemplate join mailingType m on m.id = mailTemplate."typeId" where code = $1`;
-    const params = [MailTemplate.resetPassword];
-    const template = await db.query(sql, params);
+    const { to, fullName } = req.body;
 
-    if (Helpers.isNullOrEmpty(template)) {
-
-    }
-
-    const random = Helpers.randomString();
-    const level = 1;
+    const random = helpers.randomString();
+    const code = `000002.` + random;
+    const activateUrl = config.service.webServiceUrl + `/account/activate?code=${code}`;
 
     ejs.renderFile(__dirname + '/email-template/activate-account.template.ejs', { to, fullName, activateUrl }, async (err, data) => {
         if (err) {
@@ -165,7 +158,7 @@ app.post("/sendActivateEmailAccount", async (req, res) => {
                 messages: [helpers.getLog({
                     type: "error",
                     errorMessage: err.message,
-                    executedFunction: "POST sendActivateEmailAccount | ejs.renderFile",
+                    executedFunction: "POST /sendActivateEmailAccount | ejs.renderFile",
                     data: null,
                     request: {
                         query: req.query, params: req.params, body: req.body,
@@ -180,14 +173,56 @@ app.post("/sendActivateEmailAccount", async (req, res) => {
             subject: "[Chat] Kích hoạt tài khoản mới",
             html: data,
         };
-        debug.api("POST sendActivateEmailAccount | Mail Options", JSON.stringify({
+        debug.api("POST /sendActivateEmailAccount | Mail Options", JSON.stringify({
             fullName, activateUrl,
             from: config.oauth_google.email_address,
             to,
         }), "INFO");
+        await producer.send(helpers.getKafkaLog({
+            messages: [helpers.getLog({
+                type: "info",
+                data: {
+                    fullName, activateUrl, to
+                },
+                request: {
+                    query: req.query, params: req.params, body: req.body,
+                },
+                executedFunction: "POST /sendActivateEmailAccount | renderFile ",
+            })]
+        }));
 
         return utils._sendMailHandler({ mailOptions, req, res }).then(async () => {
-            await redisClient.expire(`${template.typeName}/${random}`, template.expiredIn);
+            const template = await db.query(`select * from mailTemplate where code = '000002'`);
+            const templateExpireTime = template.rows[0]?.expireIn || 0;
+            await redis.set(code, to);
+            await redis.expire(code, templateExpireTime);
+            const addEmailSend = (await db.query(`insert into mailing("templateId", "to", data, random) values ($1, $2, $3, $4) returning *`, [template.id, to, to, random])).rows[0];
+            debug.db("_sendMailHandler", `Query insert mailling: ${JSON.stringify(addEmailSend)}`, "INFO");
+
+            // Logging kafka
+            if (addEmailSend) {
+                await producer.send(helpers.getKafkaLog({
+                    messages: [helpers.getLog({
+                        type: "info",
+                        data: addEmailSend,
+                        request: {
+                            query: req.query, params: req.params, body: req.body,
+                        },
+                        executedFunction: "POST sendActivateAccountEmail | _sendMailHandler | db.query",
+                    })]
+                }));
+            } else {
+                await producer.send(helpers.getKafkaLog({
+                    messages: [helpers.getLog({
+                        type: "error",
+                        errorMessage: "Cannot insert new mailing",
+                        request: {
+                            query: req.query, params: req.params, body: req.body,
+                        },
+                        executedFunction: "POST sendActivateAccountEmail | _sendMailHandler | db.query",
+                    })]
+                }));
+            }
         });
     });
 })
@@ -216,7 +251,7 @@ app.post("/producer", async (req, res) => {
 });
 
 app.listen(4003, async () => {
-    await redisClient.connect();
+    await redis.connect();
     await init();
     debug.api("listen", "Server is listening on port 4003", "info");
 })

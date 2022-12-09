@@ -36,6 +36,13 @@ module.exports = {
         const result = await db.query(sql, params);
         return result.rows[0];
     },
+    async updateReActivateAccount(account: IAccount) {
+        const {fullName, email, hash, registerTypeId} = account;
+        const params = [fullName, email, hash, registerTypeId];
+        let sql = 'update users set "fullName" = $1, hash = $3, "registerTypeId" = $4, status = 1 where email = $2';
+        const result = await db.query(sql, params);
+        return result.rows[0];
+    } ,
     async addUserDevice(deviceData: { id: number, userAgent: string, platform: string | null, subscribeGroupId: string }) {
        const now = new Date();
        const sql = `insert into devices(platform, "userAgent", "createdAt", "updatedAt", "userId", "subscribeGroupId") VALUES ($1, $2, now(), now(), $3, $4) returning *`;

@@ -1,17 +1,31 @@
+import {LogType} from "../common/logging";
+
 export {};
 import jwt from "jsonwebtoken";
 
 const Helpers = require("../common/helpers");
 const debug = require("../common/debugger");
 const config = require("../config");
+const producer = require("../common/kafka").producer;
+const {redis} = require("../common/redis");
 
 module.exports = {
-    verifyToken(req, res, next) {
+    async verifyToken(req, res, next) {
         const authHeader = req.headers['authorization']
         const token = authHeader && authHeader.split(' ')[1]
 
         if (token == null) {
             debug.middleware("verifyToken", `Not found token. Authorization Header: ${authHeader}`, "ERROR");
+            await producer.send(Helpers.getKafkaLog(req, {
+                messages: [{
+                    value: {
+                        type: LogType.Error,
+                        message: "Not found token",
+                        data: { auth: authHeader },
+                        executedFunction: "MIDDLEWARE verifyToken",
+                    }
+                },]
+            }));
             return res.status(401).json({
                 success: false,
                 statusCode: 401,
@@ -20,22 +34,31 @@ module.exports = {
             });
         }
 
-        jwt.verify(token, config.token.accessTokenSecret, (err: any, decoded: any) => {
-            if (err) {
-                debug.middleware("verifyToken/jwt.verify", `Cannot decode token: ${err.message}`, "ERROR");
+        const jsonAccount = await redis.get(`auth/tokens/${token}`);
+        console.log("isTokenValid", jsonAccount);
+        if (!jsonAccount) {
+            return res.status(401).json({
+                success: false,
+                statusCode: 401,
+                data: null,
+                message: "Không tìm thấy tài khoản với token"
+            });
+        }
 
-                return res.status(401).json({
-                    statusCode: 401,
-                    success: false,
-                    data: null,
-                    message: "Token không hợp lệ"
-                });
-            } else {
-                debug.middleware("verifyToken/jwt.verify", `Decoded user: ${JSON.stringify(decoded)}`);
-                req.user = decoded;
-            }
+        const account = JSON.parse(jsonAccount);
 
-            next()
-        });
+        debug.middleware("verifyToken/jwt.verify", `User: ${jsonAccount}`);
+        await producer.send(Helpers.getKafkaLog(req, {
+            messages: [{
+                value: {
+                    type: LogType.Ok,
+                    message: "Verified",
+                    data: { auth: authHeader, userId: account.id },
+                    executedFunction: "MIDDLEWARE verifyToken | jwt.verify",
+                }
+            },]
+        }));
+        req.user = account;
+        next();
     }
 }

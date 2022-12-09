@@ -311,8 +311,11 @@ where  friends.status = 1 and "typeId" = 1
         'onlineStatus', users."onlineStatus",
 
          'invitersFullName', inviters."fullName",
-         'invitersAvatarUrl', inviters."avatarUrl"
-        )) as members from channelMembers
+         'invitersAvatarUrl', inviters."avatarUrl",
+         
+        'isReceivedMessageSeen', channelMembers."isSeen",
+        'lastMessageReceivedId', channelMembers."lastMessageReceivedId"
+    )) as members from channelMembers
                 join users on users.id = channelMembers."memberId"
                 left join users inviters on channelMembers."invitedBy" = inviters."id"
                 join channelIds c on c."id" = channelMembers."channelId" and channelMembers.status = 1

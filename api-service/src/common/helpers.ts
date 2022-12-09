@@ -1,8 +1,12 @@
+import {MailTemplate} from "./interface";
+
 export {};
 require("dotenv").config();
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import {Message} from "kafkajs";
+import {LogType} from "./logging";
 
 const debug = require("../common/debugger");
 const config = require("../config");
@@ -10,6 +14,13 @@ const config = require("../config");
 const int4 = {
     max: Math.pow(2, 31) - 1,
     min: - Math.pow(2, 31),
+}
+
+interface IKafkaValue<T> {
+    type: T;
+    message?: string;
+    executedFunction?: string;
+    [key: string]: any | undefined;
 }
 
 const Helpers = {
@@ -47,7 +58,7 @@ const Helpers = {
     // JWT
     generateToken(payload: any) {
         debug.helper("generateToken", `Token's payload: ${JSON.stringify(payload)}`);
-        return jwt.sign(payload, config.token.accessTokenSecret);
+        return jwt.sign({payload, iat: new Date().getTime() / 1000}, config.token.accessTokenSecret);
     },
     /**
      * Check value is string or non.
@@ -119,6 +130,64 @@ const Helpers = {
     },
     toStringFromBase64: (input: string) => {
         return Buffer.from(input, 'base64').toString('ascii');
+    },
+    getKafkaLog: (req: any, {messages, key = config.settings.logMessageKey, topic = config.settings.logTopic}: {
+        messages: Array<Omit<Message, "value"> & {
+        value: IKafkaValue<LogType>}>, topic?: string, key?: any}) => {
+        return {
+            topic,
+            messages: messages.map(m => {
+                const {key: k, value, ...rest} = m;
+
+                return ({
+                    key: k || key || undefined,
+                    value: JSON.stringify({
+                        ...value,
+                        config: rest,
+                        loggerId: config.settings.clientId,
+                        request: {
+                            params: req.params, query: req.query, body: req.body,
+                        },
+                        metadata: {
+                            ua: req.metadata?.ua,
+                            ip: req.metadata?.ip,
+                            flowId: req.metadata?.flowId,
+                            user: req.metadata.user?.id || null,
+                        },
+                    })
+                });
+            })
+        }
+    },
+    getKafkaEventToMail: (req: any, {
+        messages,
+        key = MailTemplate.ActivateAccount,
+        topic = config.settings.mailTopic
+    }: { messages: Array<Omit<Message, "value"> & { value: IKafkaValue<any> }>, topic?: string, key?: any}) => {
+        return {
+            topic,
+            messages: messages.map(m => {
+                const {key: k, value, ...rest} = m;
+
+                return ({
+                    key: k || key || undefined,
+                    value: JSON.stringify({
+                        ...value,
+                        config: rest,
+                        loggerId: config.settings.clientId,
+                        request: {
+                            params: req?.params, query: req?.query, body: req?.body,
+                        },
+                        metadata: {
+                            ua: req.metadata?.ua,
+                            ip: req.metadata?.ip,
+                            flowId: req.metadata?.flowId,
+                            user: req.metadata.user?.id || null,
+                        },
+                    })
+                });
+            })
+        }
     },
 }
 

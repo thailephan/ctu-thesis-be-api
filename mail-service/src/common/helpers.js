@@ -79,10 +79,14 @@ const Helpers = {
     getKafkaLog: ({messages, key = config.settings.logMessageKey, topic = config.settings.logTopic}) => {
         return {
             topic,
-            messages: messages.map(m => ({
-                key: m.key || key || undefined,
-                value: JSON.stringify({...messages, loggerId: config.settings.clientId})
-            }))
+            messages: messages.map(m => {
+                const {key, value, ...rest} = m;
+
+                return ({
+                    key: m.key || key || undefined,
+                    value: JSON.stringify({...value, config: rest, loggerId: config.settings.clientId})
+                })
+            })
         }
     },
     randomString: (size = 8) => {

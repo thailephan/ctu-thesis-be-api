@@ -1,5 +1,8 @@
 import {Pool} from 'pg';
+const Helpers = require("../common/helpers");
+import {LogType} from "../common/logging";
 const debug = require("../common/debugger");
+const producer = require("../common/kafka").producer;
 
 const config = require("../config");
 
@@ -10,8 +13,21 @@ const dbConfig = {
   database: config.db.database,
   password: config.db.password,
 };
-const pool = new Pool(dbConfig).on("error", err => {
+const pool = new Pool(dbConfig).on("error", async err => {
   debug.db("Postgres DB", `Error: ${JSON.stringify(err)}`, "ERROR");
+  await producer.send(Helpers.getKafkaLog({}, {
+    topic: "postgres-log",
+    messages: [{
+      key: "api-service-postgres-log",
+      value: {
+        type: LogType.Error,
+        message: "Cannot connect to PostgresDB",
+        errorMessage: err.message,
+        data: { dbConfig },
+        executedFunction: "onError | Pool | Postgres DB",
+      },
+    },]
+  }));
 });
 
 module.exports = {

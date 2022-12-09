@@ -41,46 +41,45 @@ module.exports = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMa
             } else {
                 socket.emit("chat/message/send/error", result.data.message);
             }
-
-            // await producer.send({
-            //     // TOOD: Add to .env
-            //     topic: "api-service",
-            //     messages: [{
-            //         key: socket.currentUser.id.toString(),
-            //         value: JSON.stringify({
-            //             path: "/messages",
-            //             method: "post",
-            //             data: newMessage,
-            //             emitterId: socket.currentUser.id,
-            //             emitterAccessToken: socket.accessToken,
-            //             response: {
-            //                 topic: channelId.toString(),
-            //                 event: "chat/message/send",
-            //             }
-            //         }),
-            //     }]
-            // })
         }
     });
     // Xử lý status của message
-    socket.on("chat/message/received", ({messageId, channelId}) => {
+    socket.on("chat/message/received", async ({messageId= "latest", channelId}) => {
         // TODO: Update readMembers of message to load how many user has read that messages - not enough time
         // TODO: Emit event to channel id
-        io.to(`${channelId}`).emit("chat/message/received", {
+        const result = await service.api.post(`/messages/received`, {
             messageId,
             channelId,
-            emitterId: socket.currentUser.id,
         });
+        if (result.data.success) {
+            io.to(channelId.toString()).emit("chat/message/received", {
+                messageId: result.data.data.messageId,
+                channelId,
+                emitterId: socket.currentUser.id,
+            });
+        } else {
+            io.to(channelId.toString()).emit("chat/message/received/failed", {
+                errorMessage: "Has error happen",
+                emitterId: socket.currentUser.id,
+            });
+        }
     });
-    socket.on("chat/message/seen", async ({messageId, channelId}) => {
+    socket.on("chat/message/seen", async ({messageId = "latest", channelId}) => {
         // TODO: Update readMembers of message to load how many user has read that messages
-        await service.api.post("/messages/seen", { messageId, channelId });
-        // TODO: Emit event to channel id
-        io.to(`${channelId}`).emit("chat/message/seen", {
-            messageId,
-            channelId,
-            emitterId: socket.currentUser.id,
-        });
+        console.log(messageId, channelId);
+        const result = await service.api.post("/messages/seen", { messageId, channelId });
+        if (result.data.success) {
+            io.to(channelId.toString()).emit("chat/message/seen", {
+                messageId: result.data.data.messageId,
+                channelId,
+                emitterId: socket.currentUser.id,
+            });
+        } else {
+            io.to(channelId.toString()).emit("chat/message/seen/failed", {
+                errorMessage: "Has error happen",
+                emitterId: socket.currentUser.id,
+            });
+        }
     });
     socket.on("chat/message/remove", async ({ messageId, channelId }) => {
         // TODO: Call api to set status of message to -1
