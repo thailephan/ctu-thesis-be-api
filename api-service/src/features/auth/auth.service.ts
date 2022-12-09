@@ -39,7 +39,7 @@ module.exports = {
     async updateReActivateAccount(account: IAccount) {
         const {fullName, email, hash, registerTypeId} = account;
         const params = [fullName, email, hash, registerTypeId];
-        let sql = 'update users set "fullName" = $1, hash = $3, "registerTypeId" = $4, status = 1 where email = $2';
+        let sql = 'update users set "fullName" = $1, hash = $3, "registerTypeId" = $4 where email = $2';
         const result = await db.query(sql, params);
         return result.rows[0];
     } ,
