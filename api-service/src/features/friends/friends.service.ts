@@ -36,7 +36,7 @@ where friends.status = 1
                 join channelMembers cm1 on cm1."memberId" = "requestUserId"
                 join channelMembers cm2 on cm2."memberId" = "friendId" and cm2."channelId" = cm1."channelId"
                 join channels c on cm2."channelId" = c.id
-            where c."channelTypeId" = 1;
+            where c."channelTypeId" = 1 and c.status = 1;
         `;
         const params = [id]
         const result = await db.query(sql, params);
@@ -61,11 +61,11 @@ where friends.status = 1
             const sqlUpdateChannel = `update channels
                                   set status = -1
                                   where (id = $1 and "channelTypeId" = 1) returning *;`;
-            console.log(channel.id, userId1, userId2);
+            const g = await db.query(sqlUpdateChannel, [channel.id]);
             // TODO: Returning channel of user with id
             await client.query('END;');
             await client.query('COMMIT');
-            return (await db.query(sqlUpdateChannel, [channel.id])).rows[0];
+            return g.rows[0];
         } catch (e) {
             await client.query('ROLLBACK')
             throw e

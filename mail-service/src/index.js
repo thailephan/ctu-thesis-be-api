@@ -146,7 +146,7 @@ app.post("/sendResetPasswordEmail", async (req, res) => {
 })
 
 app.post("/sendActivateEmailAccount", async (req, res) => {
-    const { to, fullName } = req.body;
+    const { to, fullName, account } = req.body;
 
     const random = helpers.randomString();
     const code = `000002.` + random;
@@ -194,9 +194,9 @@ app.post("/sendActivateEmailAccount", async (req, res) => {
         return utils._sendMailHandler({ mailOptions, req, res }).then(async () => {
             const template = await db.query(`select * from mailTemplate where code = '000002'`);
             const templateExpireTime = template.rows[0]?.expireIn || 0;
-            await redis.set(code, to);
+            await redis.set(code, JSON.stringify(account));
             await redis.expire(code, templateExpireTime);
-            const addEmailSend = (await db.query(`insert into mailing("templateId", "to", data, random) values ($1, $2, $3, $4) returning *`, [template.id, to, to, random])).rows[0];
+            const addEmailSend = (await db.query(`insert into mailing("templateId", "to", data, random) values ($1, $2, $3, $4) returning *`, [template.rows[0]?.id, to, JSON.stringify(req.body), random])).rows[0];
             debug.db("_sendMailHandler", `Query insert mailling: ${JSON.stringify(addEmailSend)}`, "INFO");
 
             // Logging kafka
@@ -250,10 +250,10 @@ app.post("/producer", async (req, res) => {
     }
 });
 
-app.listen(4003, async () => {
+app.listen(process.env.PORT || 4003, async () => {
     await redis.connect();
     await init();
-    debug.api("listen", "Server is listening on port 4003", "info");
+    debug.api("listen", `Server is listening on port ${process.env.PORT}`, "info");
 })
 
 const MailTemplate = {

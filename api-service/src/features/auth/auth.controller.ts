@@ -227,6 +227,7 @@ module.exports = (app: Express) => {
             });
         }
     });
+    // Note : unused any more
     app.post("/auth/reActivateRegister", async (req, res) => {
         const { fullName, password, email } = req.body;
 
@@ -398,7 +399,7 @@ module.exports = (app: Express) => {
             });
         }
     });
-    app.post("/auth/registerMustActive", async (req, res) => {
+    app.post("/auth/registerMustActivate", async (req, res) => {
         const {fullName, password, email} = req.body;
         if (Helpers.isNullOrEmpty(email)) {
             await producer.send(Helpers.getKafkaLog(req, {
@@ -458,23 +459,6 @@ module.exports = (app: Express) => {
 
         if (!Helpers.isNullOrEmpty(account)) {
             debug.api("POST auth/registerMustActivate | isNullOrEmpty(getAccountByEmail(email))", `${email} has registered`, "ERROR");
-            if (account.status === 0) {
-                await producer.send(Helpers.getKafkaLog(req, {
-                    messages: [{
-                        value: {
-                            type: LogType.Error,
-                            message: "Email has registered but not activated",
-                            executedFunction: "POST /auth/registerMustActive | !isNullOrEmpty(account)",
-                        },
-                    },]
-                }));
-                return res.status(200).json({
-                    statusCode: 400,
-                    success: false,
-                    data: null,
-                    message: "Email đã được đăng ký trước đó. Vui lòng kiểm tra mail để kích hoạt tài khoản",
-                });
-            }
             await producer.send(Helpers.getKafkaLog(req, {
                 messages: [{
                     value: {
@@ -501,7 +485,6 @@ module.exports = (app: Express) => {
         };
         try {
             // create account with username and password
-            await service.createAccountMustActivate(default_account);
             await producer.send(Helpers.getKafkaEventToMail(req, {
                 messages: [{
                     value: {
@@ -509,6 +492,7 @@ module.exports = (app: Express) => {
                         data: {
                             to: email,
                             fullName,
+                            account: default_account
                         }
                     }
                 },]

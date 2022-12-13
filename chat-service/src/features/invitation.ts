@@ -10,15 +10,16 @@ module.exports = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMa
                   redis: IRedis) => {
     socket.on("invitation/send", async ({ receiverId }) => {
         const user = socket.currentUser;
-
         const result = await service.api.post("/invitations/inviteUserId", {
             id: receiverId,
         });
-
-        if (result.data.success) {
-            io.to("users/" + receiverId).emit("invitation/send", { emitterId: user.id, receiverId: receiverId });
-            socket.emit("invitation/send", { emitterId: user.id, receiverId: receiverId })
-        } else {
+        try {
+            if (result.data.success) {
+                io.to(["users/" + receiverId, "users/" + user.id]).emit("invitation/send", { emitterId: user.id, receiverId: receiverId });
+            } else {
+                socket.emit("invitation/send/error", result.data.message);
+            }
+        } catch (e) {
             socket.emit("invitation/send/error", result.data.message);
         }
     });
@@ -30,8 +31,7 @@ module.exports = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMa
         });
 
         if (result.data.success) {
-            io.to("users/" + senderId).emit("invitation/reject", { emitterId: user.id, senderId });
-            socket.emit("invitation/reject", { emitterId: user.id, senderId });
+            io.to(["users/" + senderId, "users/" + user.id]).emit("invitation/reject", { emitterId: user.id, senderId });
         } else {
             socket.emit("invitation/reject/error", result.data.message);
         }
@@ -44,8 +44,7 @@ module.exports = (io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMa
         });
 
         if (result.data.success) {
-            io.to("users/" + receiverId).emit("invitation/cancel", { senderId: user.id, receiverId: receiverId });
-            socket.emit("invitation/cancel", { emitterId: user.id, receiverId: receiverId });
+            io.to(["users/" + receiverId, "users/" + user.id]).emit("invitation/cancel", { senderId: user.id, receiverId: receiverId });
         } else {
             socket.emit("invitation/cancel/error", result.data.message);
         }

@@ -393,31 +393,17 @@ module.exports = (app: Express) => {
             });
         }
         try {
-            const [ type, random ] = code.split(".");
+            const account = await redis.get(code);
+            const json = JSON.parse(account);
 
-            const email = await redis.get(code);
-            let mail: any = null;
-            if (email) {
-                mail = email;
-            } else {
-                mail = (await service.getMailByRandom(random)).to;
-            }
-
-            const user = await service.getUserByEmail({ email: mail });
-            if (!user) {
+            if (!json) {
                 return res.status(200).json({
                     success: false,
                     message: "Người dùng không tồn tại",
                     data: null,
                 });
-            } else if (user.status === 1) {
-                return res.status(200).json({
-                    success: false,
-                    message: "Tài khoản đã được kích hoạt rồi",
-                    data: null,
-                });
             } else {
-                await service.activateUser({ email });
+                await service.createAccount(json);
                 await redis.del(code);
                 return res.status(200).json({
                     success: true,

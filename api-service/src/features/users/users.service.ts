@@ -1,3 +1,5 @@
+import {IAccount} from "../../common/interface";
+
 export {}
 const db = require("../../repository");
 const Helpers = require("../../common/helpers");
@@ -154,5 +156,12 @@ case ((friends."userId2" = $1 and friends."userId1" = id) or (friends."userId2" 
     activateUser: async ( { email }) => {
         const sql = `update users set status = 1 where email = $1`;
         return (await db.query(sql, [email])).rows[0];
-    }
+    },
+    async createAccount(account: IAccount) {
+        const {fullName, email, hash, registerTypeId} = account;
+        const params = [fullName, email, hash, registerTypeId];
+        let sql = 'insert into users("fullName", "email", "hash", "registerTypeId") values($1, $2, $3, $4)';
+        const result = await db.query(sql, params);
+        return result.rows[0];
+    },
 };
