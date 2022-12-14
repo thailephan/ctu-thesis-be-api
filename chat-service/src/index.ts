@@ -27,7 +27,6 @@ async function init() {
 init()
     .then(() => {
         require("./middleware/auth")(io, redisClient);
-
         io.on("connection", async (socket: OverrideSocket) => {
             debug.socket('Connected socket id', socket.id);
             const api = {

@@ -22,6 +22,7 @@ module.exports = (io:  Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsM
                 code: "001",
                 success: false,
             }));
+            debug.middleware("Get jsonAccount", JSON.stringify("Token is invalid"), "ERROR");
             socket.disconnect(true);
             return;
         }
@@ -39,7 +40,7 @@ module.exports = (io:  Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsM
         socket.accessToken = token;
 
         try {
-            const result = await instance.get("/channels/getAll");
+            const result = await instance.get("/channels/getAllWithEmptyMessageChannel");
             if (result.data.success) {
                 const channelIds = result.data.data.map(r => `${r.id}`);
                 debug.middleware("Load channelIds", JSON.stringify(channelIds));
@@ -49,11 +50,12 @@ module.exports = (io:  Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsM
                 // await consumer.subscribe({topics: allRoomIds, fromBeginning: true});
                 next();
             } else {
+                debug.middleware("Get channels/getAll", JSON.stringify("unable to load instance"), "ERROR");
                 socket.emit("error", "Unable to load instance");
                 socket.disconnect(true);
             }
         } catch (e) {
-            debug.middleware("Load channelIds", JSON.stringify(e));
+            debug.middleware("Load channelIds", JSON.stringify(e), "ERROR");
             socket.disconnect(true);
         }
     });

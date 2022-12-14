@@ -78,6 +78,26 @@ module.exports = (app: Express) => {
         const id = req.user.id;
 
         try {
+            const channels = await service.getAllByUserIdExcludeEmptyMessage({id});
+
+            return res.status(200).json({
+                message: null,
+                success: true,
+                data: channels,
+            });
+        } catch (e) {
+            return res.status(200).json({
+                message: e.message,
+                success: false,
+                data: null,
+            });
+        }
+    });
+    app.get("/channels/getAllWithEmptyMessageChannel", middleware.verifyToken , async (req, res) => {
+        // @ts-ignore
+        const id = req.user.id;
+
+        try {
             const channels = await service.getAllByUserId({id});
 
             return res.status(200).json({

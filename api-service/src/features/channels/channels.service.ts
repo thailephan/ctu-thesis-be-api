@@ -132,6 +132,9 @@ const getAll = async (args?: { channelTypeId?: number }) => {
 //         return channel;
 //     })));
 // }
+const getAllByUserIdExcludeEmptyMessage = async (args?: {id: number, channelTypeId?: number, searchText?: string, pageSize?: number, channelId?: number}) => {
+   return ((await getAllByUserId(args)) || []).filter(c => c.lastMessage !== null);
+};
 const getAllByUserId = async (args?: {id: number, channelTypeId?: number, searchText?: string, pageSize?: number, channelId?: number}) => {
     const {id, channelTypeId, searchText = "", pageSize, channelId} = args || {};
     const params: any = [id];
@@ -225,7 +228,7 @@ where  friends.status = 1 and "typeId" = 1
             channel.lastMessage = null;
         }
         return channel;
-    })))).filter(c => c.lastMessage !== null);
+    }))));
 }
 const removeUserToTypingList = async ({channelId, typingId}) => {
     const getSql = `select *

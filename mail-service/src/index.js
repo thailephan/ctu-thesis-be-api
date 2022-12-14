@@ -114,7 +114,7 @@ app.post("/sendResetPasswordEmail", async (req, res) => {
         const templateExpireTime = template.rows[0]?.expireIn || 0;
         await redis.set(code, to);
         await redis.expire(code, templateExpireTime);
-        const addEmailSend = (await db.query(`insert into mailing("templateId", "to", data, "createdBy", random) values ($1, $2, $3, $4, $5) returning *`, [template.id, to, to, id, random])).rows[0];
+        const addEmailSend = (await db.query(`insert into mailing("templateId", "to", data, "createdBy", random) values ($1, $2, $3, $4, $5) returning *`, [template.rows[0]?.id, to, to, id, random])).rows[0];
         debug.db("_sendMailHandler", `Query insert mailling: ${JSON.stringify(addEmailSend)}`, "INFO");
 
         // Logging kafka
